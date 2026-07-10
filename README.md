@@ -1,56 +1,63 @@
-# Welcome to your Expo app 👋
+# Peptide IQ — Mobile
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+Cross-platform (iOS + Android) port of the [peptide-iq web app](../peptide-iq), built with Expo (React Native) + TypeScript. One codebase, both stores.
 
-## Get started
+## Stack
 
-1. Install dependencies
+- **Expo SDK 57** (React Native 0.86) + TypeScript
+- **Expo Router** — file-based navigation mirroring the web app's routes
+- **NativeWind v5 + Tailwind CSS v4** (`react-native-css`) — the web app's light/dark/auto theme and palette, as Tailwind tokens (see `src/global.css`)
+- **Supabase JS** — same project, schema, and RLS as the web app; session persisted in AsyncStorage
+- **react-native-svg** — serum/PK line charts and the U-100 syringe visual
 
-   ```bash
-   npm install
-   ```
-
-2. Start the app
-
-   ```bash
-   npx expo start
-   ```
-
-In the output, you'll find options to open the app in a
-
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+## Run it
 
 ```bash
-npm run reset-project
+npm install
+cp .env.example .env   # then fill in the Supabase URL + anon key (same as web app)
+npx expo start
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+Scan the QR code with **Expo Go** (Android) or the Camera app (iOS), or press `a`/`i` to launch an emulator/simulator. Sign in with the same account you use on the web app — all data syncs through the shared Supabase project.
 
-### Other setup steps
+## Project layout
 
-- To set up ESLint for linting, run `npx expo lint`, or follow our guide on ["Using ESLint and Prettier"](https://docs.expo.dev/guides/using-eslint/)
-- If you'd like to set up unit testing, follow our guide on ["Unit Testing with Jest"](https://docs.expo.dev/develop/unit-testing/)
-- Learn more about the TypeScript setup in this template in our guide on ["Using TypeScript"](https://docs.expo.dev/guides/typescript/)
+```
+src/
+  app/               Expo Router routes
+    (tabs)/          Dashboard · Schedule · Calculator · My Peptides · More
+    compound/[id]    Compound detail (user compound)
+    library/logbook/progress/alerts   pushed from the More tab
+    login.tsx        email/password auth (gated via Stack.Protected)
+  components/        UI kit (ui.tsx), LineChart, SyringeVisual, modals…
+  context/           AppContext (Supabase data), AuthContext, ThemeModeContext
+  data/compounds.ts  compound library (copied verbatim from web)
+  utils/             calculator, serumModel, schedule, blendMath, tracking (verbatim from web)
+  theme/colors.ts    raw palette for charts/icons (mirrors global.css)
+  global.css         Tailwind v4 theme — single source of truth for UI colors
+```
 
-## Learn more
+## Builds
 
-To learn more about developing your project with Expo, look at the following resources:
+```bash
+npm i -g eas-cli
+eas login
+eas build --platform ios --profile production      # .ipa
+eas build --platform android --profile production  # .aab
+```
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+Set the Supabase env vars for EAS builds first (they're not baked into the repo):
 
-## Join the community
+```bash
+eas env:create --name EXPO_PUBLIC_SUPABASE_URL --value https://… --environment production
+eas env:create --name EXPO_PUBLIC_SUPABASE_ANON_KEY --value eyJ… --environment production
+```
 
-Join our community of developers creating universal apps.
+See **HANDOFF.md** for the full store-submission checklist (accounts, credentials, listing copy, health-app review notes).
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+## Checks
+
+```bash
+npx tsc --noEmit                      # typecheck
+npx expo export --platform android   # verify the bundle compiles
+```
