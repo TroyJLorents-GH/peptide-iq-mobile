@@ -88,7 +88,12 @@ export default function DashboardScreen() {
       rangeStart = now - rangeDays * 24 * 60 * 60 * 1000;
     }
 
-    const totalDays = (now - rangeStart) / (24 * 60 * 60 * 1000);
+    // Project the decay curve ~20% past "now" (capped at 7 days) — rendered
+    // as a dashed segment by LineChart via markerX.
+    const projectionMs = Math.min((now - rangeStart) * 0.2, 7 * 24 * 60 * 60 * 1000);
+    const chartEnd = now + projectionMs;
+
+    const totalDays = (chartEnd - rangeStart) / (24 * 60 * 60 * 1000);
     const pointsPerDay = rangeDays === 1 ? 24 : totalDays > 14 ? 2 : 4;
     const points = Math.max(Math.round(totalDays * pointsPerDay), 50);
 
@@ -98,7 +103,7 @@ export default function DashboardScreen() {
         if (!compound) return null;
         const compoundDoses = doseLogs.filter(d => d.compoundId === uc.compoundId);
         if (compoundDoses.length === 0) return null;
-        const curve = calculateSerumCurve(compoundDoses, compound, rangeStart, now, points, graphMode);
+        const curve = calculateSerumCurve(compoundDoses, compound, rangeStart, chartEnd, points, graphMode);
         return {
           color: uc.color || CHART_COLORS[idx % CHART_COLORS.length],
           points: curve.map(p => ({ x: p.timestamp, y: p.concentration })),
@@ -111,6 +116,7 @@ export default function DashboardScreen() {
   // "Daily Range" bar view (mirrors the web toggle).
   const dailyRanges = useMemo<RangeDay[]>(() => {
     if (chartSeries.length === 0) return [];
+    const now = Date.now();
     const startOfDay = (ts: number) => {
       const d = new Date(ts);
       d.setHours(0, 0, 0, 0);
@@ -119,7 +125,8 @@ export default function DashboardScreen() {
     const dayStarts = new Set<number>();
     const seriesDayRanges = chartSeries.map(s => {
       const m = new Map<number, { min: number; max: number }>();
-      for (const p of s.points) {
+      // Exclude the dashed forward projection from daily-range bars.
+      for (const p of s.points.filter(pt => pt.x <= now)) {
         const day = startOfDay(p.x);
         dayStarts.add(day);
         const cur = m.get(day);
@@ -310,6 +317,7 @@ export default function DashboardScreen() {
                   <LineChart
                     series={chartSeries}
                     height={260}
+                    markerX={Date.now()}
                     xFormatter={xFormatter}
                     yFormatter={y => (graphMode === 'bodyLoad' ? y.toFixed(y >= 10 ? 0 : 1) : y.toFixed(0))}
                   />

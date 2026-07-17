@@ -3,6 +3,7 @@ import { Alert as RNAlert } from 'react-native';
 import Svg, { Circle, Defs, LinearGradient as SvgLinearGradient, Stop } from 'react-native-svg';
 import Animated, { Easing, useAnimatedProps, useSharedValue, withTiming } from 'react-native-reanimated';
 import { AnimatedCount } from '../components/Anim';
+import RulerSlider from '../components/RulerSlider';
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 import { MaterialIcons } from '@expo/vector-icons';
@@ -53,6 +54,7 @@ export default function ProgressScreen() {
   });
   const [loading, setLoading] = useState(true);
   const [trendRange, setTrendRange] = useState<TrendRange>('all');
+  const [entriesOpen, setEntriesOpen] = useState(false);
 
   // add / edit entry modal
   const [addOpen, setAddOpen] = useState(false);
@@ -332,10 +334,13 @@ export default function ProgressScreen() {
         <MetricRow label="BMI" value={bmi !== null ? bmi.toFixed(1) : '-'} delta={null} />
       </Card>
 
-      {/* Recent entries */}
+      {/* Recent entries — collapsible */}
       <Card className="p-4">
-        <SectionLabel>Recent Entries · {logs.length}</SectionLabel>
-        {loading ? (
+        <Pressable className="flex-row items-center justify-between" onPress={() => setEntriesOpen(o => !o)}>
+          <SectionLabel>Recent Entries · {logs.length}</SectionLabel>
+          <MaterialIcons name={entriesOpen ? 'expand-less' : 'expand-more'} size={20} color={colors.muted} />
+        </Pressable>
+        {!entriesOpen ? null : loading ? (
           <Text className="text-[13px]" style={{ color: colors.muted }}>Loading…</Text>
         ) : sortedLogs.length === 0 ? (
           <Banner tone="info">No entries yet. Tap "Log Weight" to add your first.</Banner>
@@ -388,7 +393,18 @@ export default function ProgressScreen() {
           />
         }
       >
-        <Field label="Weight (lbs)">
+        {/* Big value + tape ruler (MeAgain-style), with typed input fallback */}
+        <View className="items-center mb-1">
+          <Text className="font-mono text-[40px] font-extrabold" style={{ color: colors.primary }}>
+            {addWeight || '—'}
+            <Text className="font-mono text-sm font-semibold" style={{ color: colors.muted }}> lbs</Text>
+          </Text>
+        </View>
+        <RulerSlider
+          value={parseFloat(addWeight) || 185}
+          onChange={v => setAddWeight(v.toFixed(1))}
+        />
+        <Field label="Or type exact weight (lbs)" className="mt-3">
           <Input value={addWeight} onChangeText={setAddWeight} keyboardType="decimal-pad" placeholder="185.0" />
         </Field>
         <Field label="Body Fat % (optional)">

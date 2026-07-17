@@ -1,10 +1,19 @@
 import { useMemo, useState } from 'react';
-import { ScrollView, Text, TouchableOpacity, View } from '../../tw';
+import { Pressable, ScrollView, Text, TouchableOpacity, View } from '../../tw';
 import { Banner, Button, Card, Field, Input, Screen, Select, SectionLabel } from '../../components/ui';
 import SyringeVisual from '../../components/SyringeVisual';
+import SplitDoseCalculator from '../../components/calculator/SplitDoseCalculator';
+import TitrationPlanner from '../../components/calculator/TitrationPlanner';
 import { useThemeMode } from '../../context/ThemeModeContext';
 import { calculateDose } from '../../utils/calculator';
 import type { CalculatorResult } from '../../types';
+
+type CalcTool = 'recon' | 'split' | 'titration';
+const TOOLS: { key: CalcTool; label: string }[] = [
+  { key: 'recon', label: 'Reconstitution' },
+  { key: 'split', label: 'Split Dose' },
+  { key: 'titration', label: 'Titration' },
+];
 
 // Preset dose options (in mcg)
 const DOSE_OPTIONS = [
@@ -80,6 +89,7 @@ function PresetOrCustom({ label, unit, options, presetValue, setPresetValue, cus
 
 export default function CalculatorScreen() {
   const { colors } = useThemeMode();
+  const [tool, setTool] = useState<CalcTool>('recon');
   const [desiredDoseMcg, setDesiredDoseMcg] = useState<number | null>(null);
   const [customDose, setCustomDose] = useState('');
   const [useCustomDose, setUseCustomDose] = useState(false);
@@ -111,6 +121,36 @@ export default function CalculatorScreen() {
 
   return (
     <Screen>
+      {/* Tool switcher */}
+      <View className="flex-row gap-1.5 mb-3">
+        {TOOLS.map(t => {
+          const active = tool === t.key;
+          return (
+            <Pressable
+              key={t.key}
+              className="flex-1 items-center rounded-full border px-2 py-2"
+              style={{
+                backgroundColor: active ? colors.primaryTint : 'transparent',
+                borderColor: active ? colors.primary : colors.outline,
+              }}
+              onPress={() => setTool(t.key)}
+            >
+              <Text
+                className={`font-mono text-[10px] uppercase tracking-wider ${active ? 'font-semibold' : ''}`}
+                style={{ color: active ? colors.tealText : colors.muted }}
+              >
+                {t.label}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </View>
+
+      {tool === 'split' ? <SplitDoseCalculator /> : null}
+      {tool === 'titration' ? <TitrationPlanner /> : null}
+
+      {tool === 'recon' ? (
+      <>
       <View className="flex-row items-center justify-between mb-1">
         <Text className="text-sm flex-1" style={{ color: colors.muted }}>
           Accurate dosing for reconstituted peptides on a U-100 insulin syringe.
@@ -211,6 +251,8 @@ export default function CalculatorScreen() {
             {result.syringeUnits} units on a U-100 syringe.
           </Text>
         </Card>
+      ) : null}
+      </>
       ) : null}
     </Screen>
   );
