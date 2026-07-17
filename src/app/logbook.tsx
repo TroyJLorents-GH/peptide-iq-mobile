@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { Alert, Platform } from 'react-native';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { MaterialIcons } from '@expo/vector-icons';
@@ -182,19 +182,44 @@ export default function LogbookScreen() {
     [events],
   );
 
-  // Group filtered events by day, cap for scroll performance.
-  const dayGroups = useMemo(() => {
-    const capped = filtered.slice(0, 100);
-    const groups: { key: string; day: Date; events: ActivityEvent[] }[] = [];
+  // Group filtered events by week (Sun–Sat, matching the web), cap for perf.
+  const weekGroups = useMemo(() => {
+    const capped = filtered.slice(0, 200);
+    const groups: { key: string; start: Date; end: Date; events: ActivityEvent[] }[] = [];
     for (const e of capped) {
       const d = new Date(e.timestamp);
+      d.setHours(0, 0, 0, 0);
+      d.setDate(d.getDate() - d.getDay()); // back to Sunday
       const key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`;
-      const existing = groups.find(g => g.key === key);
-      if (existing) existing.events.push(e);
-      else groups.push({ key, day: new Date(d.getFullYear(), d.getMonth(), d.getDate()), events: [e] });
+      let g = groups.find(x => x.key === key);
+      if (!g) {
+        const end = new Date(d);
+        end.setDate(end.getDate() + 6);
+        g = { key, start: new Date(d), end, events: [] };
+        groups.push(g);
+      }
+      g.events.push(e);
     }
     return { groups, truncated: filtered.length > capped.length };
   }, [filtered]);
+
+  // Which weeks are expanded. Most-recent week starts open; the rest collapsed.
+  const [expandedWeeks, setExpandedWeeks] = useState<Set<string>>(new Set());
+  const weekInitRef = useRef(false);
+  useEffect(() => {
+    if (!weekInitRef.current && weekGroups.groups.length > 0) {
+      setExpandedWeeks(new Set([weekGroups.groups[0].key]));
+      weekInitRef.current = true;
+    }
+  }, [weekGroups]);
+
+  const toggleWeek = (key: string) =>
+    setExpandedWeeks(prev => {
+      const next = new Set(prev);
+      if (next.has(key)) next.delete(key);
+      else next.add(key);
+      return next;
+    });
 
   const adherence = plannedDoses.length > 0
     ? Math.round((plannedDoses.filter(p => p.isTaken).length / plannedDoses.length) * 100)
@@ -368,7 +393,7 @@ export default function LogbookScreen() {
 
   return (
     <Screen>
-      <Text className="text-xs text-muted mb-3">
+      <Text className="text-xs mb-3" style={{ color: colors.muted }}>
         Every dose, weight log, and scheduled slot in one searchable view.
       </Text>
 
@@ -389,7 +414,7 @@ export default function LogbookScreen() {
       <SectionLabel>Body Load by Peptide</SectionLabel>
       <Card className="p-3 mb-4">
         <View className="flex-row items-center justify-between mb-1">
-          <Text className="text-xs text-muted">Estimated body load — last 30 days</Text>
+          <Text className="text-xs" style={{ color: colors.muted }}>Estimated body load — last 30 days</Text>
           <Chip label="Population PK" tone="primary" />
         </View>
         {hasChartData ? (
@@ -402,7 +427,7 @@ export default function LogbookScreen() {
           />
         ) : (
           <View className="h-[140px] items-center justify-center">
-            <Text className="text-[13px] text-muted">Log doses to see body-load curves.</Text>
+            <Text className="text-[13px]" style={{ color: colors.muted }}>Log doses to see body-load curves.</Text>
           </View>
         )}
         {chartSeries.length > 0 ? (
@@ -413,7 +438,7 @@ export default function LogbookScreen() {
               return (
                 <View key={uc.id} className="flex-row items-center gap-1.5">
                   <View className="w-2 h-2 rounded-full" style={{ backgroundColor: uc.color }} />
-                  <Text className="text-[10px] text-muted">{compound.genericName}</Text>
+                  <Text className="text-[10px]" style={{ color: colors.muted }}>{compound.genericName}</Text>
                 </View>
               );
             })}
@@ -440,10 +465,17 @@ export default function LogbookScreen() {
           return (
             <Pressable
               key={f.key}
-              className={`rounded-full border px-3 py-1.5 ${active ? 'bg-primary-tint border-primary' : 'border-outline'}`}
+              className="rounded-full border px-3 py-1.5"
+              style={{
+                backgroundColor: active ? colors.primaryTint : 'transparent',
+                borderColor: active ? colors.primary : colors.outline,
+              }}
               onPress={() => setFilter(f.key)}
             >
-              <Text className={`font-mono text-[10px] uppercase tracking-wider ${active ? 'text-teal-text font-medium' : 'text-muted'}`}>
+              <Text
+                className={`font-mono text-[10px] uppercase tracking-wider ${active ? 'font-medium' : ''}`}
+                style={{ color: active ? colors.tealText : colors.muted }}
+              >
                 {f.label}
               </Text>
             </Pressable>
@@ -461,8 +493,8 @@ export default function LogbookScreen() {
       ) : null}
       <Input value={search} onChangeText={setSearch} placeholder="Search peptide, site, notes…" className="mb-3" />
 
-      {/* Event list grouped by day */}
-      {dayGroups.groups.length === 0 ? (
+      {/* Event list grouped by week — collapsible accordion */}
+      {weekGroups.groups.length === 0 ? (
         <Card>
           <EmptyState
             icon="history"
@@ -471,34 +503,50 @@ export default function LogbookScreen() {
           />
         </Card>
       ) : (
-        dayGroups.groups.map(group => (
-          <View key={group.key} className="mb-3">
-            <Text className="font-mono text-[10px] uppercase tracking-widest text-muted mb-1.5">
-              {group.day.toLocaleDateString(undefined, { weekday: 'long', month: 'long', day: 'numeric' })}
-            </Text>
-            <Card>
-              {group.events.map((e, i) => (
-                <View key={e.id}>
-                  {i > 0 ? <Divider /> : null}
-                  <EventCard
-                    event={e}
-                    onPress={() => handleEventPress(e)}
-                    onLongPress={() => handleEventLongPress(e)}
-                  />
+        weekGroups.groups.map(group => {
+          const open = expandedWeeks.has(group.key);
+          const label = `Week of ${group.start.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })} - ${group.end.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}`;
+          return (
+            <Card key={group.key} className="mb-2 overflow-hidden">
+              <Pressable
+                className="flex-row items-center gap-2 px-3 py-3.5"
+                onPress={() => toggleWeek(group.key)}
+              >
+                <MaterialIcons name={open ? 'expand-more' : 'chevron-right'} size={20} color={colors.muted} />
+                <Text className="text-[13px] font-semibold flex-1" style={{ color: colors.text }} numberOfLines={1}>
+                  {label}
+                </Text>
+                <View className="rounded-full px-2 py-0.5" style={{ backgroundColor: colors.primaryTint }}>
+                  <Text className="font-mono text-[10px] font-medium" style={{ color: colors.tealText }}>
+                    {group.events.length}
+                  </Text>
                 </View>
-              ))}
+              </Pressable>
+              {open
+                ? group.events.map(e => (
+                    <View key={e.id}>
+                      <Divider />
+                      <EventCard
+                        event={e}
+                        showDate
+                        onPress={() => handleEventPress(e)}
+                        onLongPress={() => handleEventLongPress(e)}
+                      />
+                    </View>
+                  ))
+                : null}
             </Card>
-          </View>
-        ))
+          );
+        })
       )}
-      {dayGroups.truncated ? (
-        <Text className="text-[11px] text-muted text-center mb-2">
-          Showing the 100 most recent events. Use search or filters to narrow further.
+      {weekGroups.truncated ? (
+        <Text className="text-[11px] text-center mb-2 mt-1" style={{ color: colors.muted }}>
+          Showing the 200 most recent events. Use search or filters to narrow further.
         </Text>
       ) : null}
-      {dayGroups.groups.length > 0 ? (
-        <Text className="text-[11px] text-muted text-center">
-          Tap an entry to edit · long-press to delete
+      {weekGroups.groups.length > 0 ? (
+        <Text className="text-[11px] text-center mt-1" style={{ color: colors.muted }}>
+          Tap a week to expand · tap an entry to edit · long-press to delete
         </Text>
       ) : null}
 
@@ -577,11 +625,11 @@ function StatCard({ label, value, detail, icon, accent }: {
     <Card className={`p-3 w-[48.5%] ${accent ? 'border-t-2 border-t-primary' : ''}`}>
       <View className="flex-row items-center justify-between gap-2">
         <View className="flex-1">
-          <Text className="font-mono text-[9px] uppercase tracking-widest text-muted">{label}</Text>
-          <Text className="font-mono text-xl font-bold text-ink mt-1" numberOfLines={1}>{value}</Text>
-          <Text className="text-[11px] text-muted mt-0.5" numberOfLines={1}>{detail}</Text>
+          <Text className="font-mono text-[9px] uppercase tracking-widest" style={{ color: colors.muted }}>{label}</Text>
+          <Text className="font-mono text-xl font-bold mt-1" style={{ color: colors.text }} numberOfLines={1}>{value}</Text>
+          <Text className="text-[11px] mt-0.5" style={{ color: colors.muted }} numberOfLines={1}>{detail}</Text>
         </View>
-        <View className="w-9 h-9 rounded-full bg-primary-tint items-center justify-center">
+        <View className="w-9 h-9 rounded-full items-center justify-center" style={{ backgroundColor: colors.primaryTint }}>
           <MaterialIcons name={icon} size={18} color={colors.primary} />
         </View>
       </View>
@@ -589,14 +637,18 @@ function StatCard({ label, value, detail, icon, accent }: {
   );
 }
 
-function EventCard({ event, onPress, onLongPress }: {
+function EventCard({ event, onPress, onLongPress, showDate }: {
   event: ActivityEvent;
   onPress: () => void;
   onLongPress: () => void;
+  showDate?: boolean;
 }) {
+  const { colors } = useThemeMode();
   const icon: keyof typeof MaterialIcons.glyphMap =
     event.type === 'weight' ? 'monitor-weight' : event.type === 'planned' ? 'schedule' : 'vaccines';
-  const time = new Date(event.timestamp).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+  const dt = new Date(event.timestamp);
+  const time = dt.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
+  const dayLabel = dt.toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' });
   return (
     <Pressable className="flex-row items-center gap-3 px-3 py-3" onPress={onPress} onLongPress={onLongPress}>
       <View
@@ -607,20 +659,24 @@ function EventCard({ event, onPress, onLongPress }: {
       </View>
       <View className="flex-1 min-w-0">
         <View className="flex-row items-center gap-1.5">
-          <Text className="text-[13px] font-semibold text-ink" numberOfLines={1}>{event.title}</Text>
+          <Text className="text-[13px] font-semibold" style={{ color: colors.text }} numberOfLines={1}>{event.title}</Text>
           {event.type === 'planned' ? <Chip label="Planned" tone="warning" /> : null}
         </View>
-        <Text className="text-xs text-muted mt-0.5" numberOfLines={1}>
+        <Text className="text-xs mt-0.5" style={{ color: colors.muted }} numberOfLines={1}>
           {event.subtitle}{event.detail ? ` · ${event.detail}` : ''}
         </Text>
       </View>
-      <Text className="font-mono text-[10px] text-muted">{time}</Text>
+      <View className="items-end">
+        {showDate ? <Text className="font-mono text-[10px]" style={{ color: colors.muted }}>{dayLabel}</Text> : null}
+        <Text className="font-mono text-[10px]" style={{ color: colors.muted }}>{time}</Text>
+      </View>
     </Pressable>
   );
 }
 
 /** Cross-platform date+time field. iOS renders compact inline pickers; Android opens dialogs. */
 function DateTimeField({ label, value, onChange }: { label: string; value: Date; onChange: (d: Date) => void }) {
+  const { colors } = useThemeMode();
   const [show, setShow] = useState<'date' | 'time' | null>(null);
 
   if (Platform.OS === 'ios') {
@@ -641,13 +697,13 @@ function DateTimeField({ label, value, onChange }: { label: string; value: Date;
   return (
     <Field label={label}>
       <View className="flex-row gap-2">
-        <Pressable className="flex-1 border border-outline rounded-md px-3 py-2.5 bg-surface" onPress={() => setShow('date')}>
-          <Text className="text-sm text-ink">
+        <Pressable className="flex-1 border rounded-md px-3 py-2.5" style={{ borderColor: colors.outline, backgroundColor: colors.surface }} onPress={() => setShow('date')}>
+          <Text className="text-sm" style={{ color: colors.text }}>
             {value.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
           </Text>
         </Pressable>
-        <Pressable className="border border-outline rounded-md px-3 py-2.5 bg-surface" onPress={() => setShow('time')}>
-          <Text className="text-sm text-ink">
+        <Pressable className="border rounded-md px-3 py-2.5" style={{ borderColor: colors.outline, backgroundColor: colors.surface }} onPress={() => setShow('time')}>
+          <Text className="text-sm" style={{ color: colors.text }}>
             {value.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}
           </Text>
         </Pressable>

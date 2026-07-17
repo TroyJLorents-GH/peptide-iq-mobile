@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { MaterialIcons } from '@expo/vector-icons';
+import { Image } from 'expo-image';
 import { KeyboardAvoidingView, ScrollView, Text, TouchableOpacity, View } from '../tw';
 import { Banner, Button, Card, Divider, Field, Input } from '../components/ui';
 import { useThemeMode } from '../context/ThemeModeContext';
@@ -37,16 +37,20 @@ export default function LoginScreen() {
   };
 
   return (
-    <KeyboardAvoidingView className="flex-1 bg-bg" behavior="padding">
+    <KeyboardAvoidingView className="flex-1" style={{ backgroundColor: colors.bg }} behavior="padding">
       <ScrollView
         contentContainerClassName="flex-grow justify-center p-4"
         keyboardShouldPersistTaps="handled"
       >
         <Card className="p-6">
           <View className="items-center mb-5">
-            <MaterialIcons name="biotech" size={48} color={colors.primary} />
-            <Text className="text-xl font-bold text-primary mt-1">PeptideIQ</Text>
-            <Text className="text-[13px] text-muted mt-1">
+            <Image
+              source={require('../../assets/images/icon.png')}
+              style={{ width: 72, height: 72, borderRadius: 16 }}
+              contentFit="contain"
+            />
+            <Text className="text-xl font-bold mt-2" style={{ color: colors.primary }}>PeptideIQ</Text>
+            <Text className="text-[13px] mt-1" style={{ color: colors.muted }}>
               {isSignUp ? 'Create an account' : 'Sign in to track your peptides'}
             </Text>
           </View>
@@ -84,12 +88,12 @@ export default function LoginScreen() {
           <Divider className="my-4" />
 
           <TouchableOpacity onPress={() => { setIsSignUp(v => !v); setError(''); setMessage(''); }}>
-            <Text className="text-[13px] text-primary text-center">
+            <Text className="text-[13px] text-center" style={{ color: colors.primary }}>
               {isSignUp ? 'Already have an account? Sign In' : "Don't have an account? Sign Up"}
             </Text>
           </TouchableOpacity>
 
-          <Text className="text-[11px] text-muted text-center mt-4">
+          <Text className="text-[11px] text-center mt-4" style={{ color: colors.muted }}>
             Educational tool — not medical advice
           </Text>
         </Card>

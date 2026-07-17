@@ -140,17 +140,17 @@ export default function SyringeVisual({ result }: SyringeVisualProps) {
               y1={plungerTopY}
               x2={barrelRightX + 32}
               y2={plungerTopY}
-              stroke="#8B5CF6"
+              stroke={colors.primary}
               strokeWidth={1.5}
               strokeDasharray="4 3"
               opacity={0.9}
             />
-            <Rect x={barrelLeftX - 44} y={plungerTopY - 11} width={36} height={22} rx={8} fill={colors.surface} stroke="#8B5CF6" strokeWidth={1} />
+            <Rect x={barrelLeftX - 44} y={plungerTopY - 11} width={36} height={22} rx={8} fill={colors.surface} stroke={colors.primary} strokeWidth={1} />
             <SvgText
               x={barrelLeftX - 26}
               y={plungerTopY + 4}
               textAnchor="middle"
-              fill={colors.violetText}
+              fill={colors.tealText}
               fontSize={10}
               fontWeight="700"
             >
@@ -188,7 +188,7 @@ export default function SyringeVisual({ result }: SyringeVisualProps) {
         </SvgText>
       </Svg>
       {!result ? (
-        <Text className="text-xs text-muted text-center mt-2 px-6">
+        <Text className="text-xs text-center mt-2 px-6" style={{ color: colors.muted }}>
           Add vial strength, water volume, and desired dose to calculate U-100 syringe units.
         </Text>
       ) : null}

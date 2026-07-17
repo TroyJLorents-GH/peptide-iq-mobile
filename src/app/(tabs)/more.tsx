@@ -36,7 +36,7 @@ export default function MoreScreen() {
               onPress={() => router.push(item.href as any)}
             >
               <MaterialIcons name={item.icon} size={20} color={colors.muted} />
-              <Text className="flex-1 text-sm text-ink">{item.label}</Text>
+              <Text className="flex-1 text-sm" style={{ color: colors.text }}>{item.label}</Text>
               <MaterialIcons name="chevron-right" size={20} color={colors.muted} />
             </Pressable>
           </View>
@@ -50,11 +50,18 @@ export default function MoreScreen() {
           return (
             <Pressable
               key={opt.value}
-              className={`flex-1 items-center py-3 ${active ? 'bg-primary-tint' : ''} ${i > 0 ? 'border-l border-divider' : ''}`}
+              className={`flex-1 items-center py-3 ${i > 0 ? 'border-l' : ''}`}
+              style={{
+                backgroundColor: active ? colors.primaryTint : undefined,
+                borderLeftColor: i > 0 ? colors.divider : undefined,
+              }}
               onPress={() => setPreference(opt.value)}
             >
               <MaterialIcons name={opt.icon} size={18} color={active ? colors.primary : colors.muted} />
-              <Text className={`font-mono text-[10px] uppercase tracking-wider mt-1 ${active ? 'text-teal-text font-medium' : 'text-muted'}`}>
+              <Text
+                className={`font-mono text-[10px] uppercase tracking-wider mt-1 ${active ? 'font-medium' : ''}`}
+                style={{ color: active ? colors.tealText : colors.muted }}
+              >
                 {opt.label}
               </Text>
             </Pressable>
@@ -65,8 +72,8 @@ export default function MoreScreen() {
       <SectionLabel>Account</SectionLabel>
       <Card>
         <View className="px-4 py-3">
-          <Text className="text-xs text-muted">Signed in as</Text>
-          <Text className="text-sm text-ink mt-0.5" numberOfLines={1}>{user?.email}</Text>
+          <Text className="text-xs" style={{ color: colors.muted }}>Signed in as</Text>
+          <Text className="text-sm mt-0.5" style={{ color: colors.text }} numberOfLines={1}>{user?.email}</Text>
         </View>
         <Divider />
         <Pressable
@@ -74,16 +81,16 @@ export default function MoreScreen() {
           onPress={() => Linking.openURL('mailto:peptide.iq.update@gmail.com?subject=PeptideIQ%20Support')}
         >
           <MaterialIcons name="support-agent" size={20} color={colors.muted} />
-          <Text className="flex-1 text-sm text-ink">Contact Support</Text>
+          <Text className="flex-1 text-sm" style={{ color: colors.text }}>Contact Support</Text>
         </Pressable>
         <Divider />
         <Pressable className="flex-row items-center gap-3 px-4 py-3.5" onPress={signOut}>
           <MaterialIcons name="logout" size={20} color={colors.error} />
-          <Text className="flex-1 text-sm text-danger">Sign Out</Text>
+          <Text className="flex-1 text-sm" style={{ color: colors.error }}>Sign Out</Text>
         </Pressable>
       </Card>
 
-      <Text className="text-[11px] text-muted text-center mt-6">
+      <Text className="text-[11px] text-center mt-6" style={{ color: colors.muted }}>
         Educational tool — not medical advice
       </Text>
     </Screen>

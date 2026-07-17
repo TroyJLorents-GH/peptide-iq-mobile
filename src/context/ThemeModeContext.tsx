@@ -1,7 +1,9 @@
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Appearance, useColorScheme } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { VariableContextProvider } from 'react-native-css';
 import { palette, type Palette, type ThemeMode } from '../theme/colors';
+import { cssVars } from '../theme/cssVars';
 
 // What the user picked. 'auto' follows the OS color scheme.
 export type ThemePreference = 'light' | 'dark' | 'auto';
@@ -54,7 +56,12 @@ export function ThemeModeProvider({ children }: { children: ReactNode }) {
 
   return (
     <ThemeModeContext.Provider value={value}>
-      {children}
+      {/* Inject every Tailwind theme token as a concrete value for the
+          resolved mode. Inherited variables win over the CSS :root pipeline
+          and, unlike it, reach content inside native <Modal>s. */}
+      <VariableContextProvider value={cssVars[resolvedMode]}>
+        {children}
+      </VariableContextProvider>
     </ThemeModeContext.Provider>
   );
 }

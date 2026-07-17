@@ -120,7 +120,7 @@ export default function AlertsScreen() {
 
   return (
     <Screen>
-      <Text className="text-[13px] text-muted mb-4">
+      <Text className="text-[13px] mb-4" style={{ color: colors.muted }}>
         Safety information for your active compounds. All alerts are source-backed.
       </Text>
 
@@ -134,7 +134,7 @@ export default function AlertsScreen() {
         <AlertGroup
           title="Critical Warnings"
           icon={<MaterialIcons name="warning-amber" size={20} color={colors.error} />}
-          titleClass="text-danger"
+          titleColor={colors.error}
           alerts={criticalAlerts}
           tone="error"
         />
@@ -144,7 +144,7 @@ export default function AlertsScreen() {
         <AlertGroup
           title="Warnings"
           icon={<MaterialIcons name="warning-amber" size={20} color={colors.warning} />}
-          titleClass="text-warn"
+          titleColor={colors.warning}
           alerts={warningAlerts}
           tone="warning"
         />
@@ -154,14 +154,14 @@ export default function AlertsScreen() {
         <AlertGroup
           title="Information"
           icon={<MaterialIcons name="info-outline" size={20} color={colors.info} />}
-          titleClass="text-teal-text"
+          titleColor={colors.tealText}
           alerts={infoAlerts}
           tone="info"
         />
       ) : null}
 
       <Card className="p-4 mt-2">
-        <Text className="text-[11px] text-muted leading-4">
+        <Text className="text-[11px] leading-4" style={{ color: colors.muted }}>
           This information is for educational purposes only and is not medical advice.
           Always consult a qualified healthcare provider before starting, stopping, or changing any peptide regimen.
           Emergency symptoms should prompt medical care, not app troubleshooting.
@@ -171,41 +171,42 @@ export default function AlertsScreen() {
   );
 }
 
-function AlertGroup({ title, icon, titleClass, alerts, tone }: {
+function AlertGroup({ title, icon, titleColor, alerts, tone }: {
   title: string;
   icon: React.ReactNode;
-  titleClass: string;
+  titleColor: string;
   alerts: AlertItem[];
   tone: 'error' | 'warning' | 'info';
 }) {
-  const boxClass = {
-    error: 'bg-danger-tint',
-    warning: 'bg-warn-tint',
-    info: 'bg-primary-tint',
+  const { colors } = useThemeMode();
+  const boxColor = {
+    error: colors.errorTint,
+    warning: colors.warningTint,
+    info: colors.primaryTint,
   }[tone];
-  const textClass = {
-    error: 'text-danger',
-    warning: 'text-warn',
-    info: 'text-teal-text',
+  const textColor = {
+    error: colors.error,
+    warning: colors.warning,
+    info: colors.tealText,
   }[tone];
 
   return (
     <View className="mb-5">
       <View className="flex-row items-center gap-2 mb-2">
         {icon}
-        <Text className={`text-base font-semibold ${titleClass}`}>{title}</Text>
+        <Text className="text-base font-semibold" style={{ color: titleColor }}>{title}</Text>
       </View>
       <View className="gap-2">
         {alerts.map((alert, i) => (
-          <View key={i} className={`rounded-md px-3 py-2.5 ${boxClass}`}>
+          <View key={i} className="rounded-md px-3 py-2.5" style={{ backgroundColor: boxColor }}>
             <View className="flex-row items-center gap-1.5 flex-wrap mb-1">
-              <Text className={`text-[13px] font-semibold ${textClass}`}>{alert.title}</Text>
+              <Text className="text-[13px] font-semibold" style={{ color: textColor }}>{alert.title}</Text>
               <View className="rounded-full border px-1.5 py-px" style={{ borderColor: alert.color }}>
                 <Text className="text-[10px]" style={{ color: alert.color }}>{alert.compoundName}</Text>
               </View>
               <EvidenceBadge tier={alert.evidenceTier} />
             </View>
-            <Text className="text-[13px] leading-5 text-ink">{alert.message}</Text>
+            <Text className="text-[13px] leading-5" style={{ color: colors.text }}>{alert.message}</Text>
           </View>
         ))}
       </View>

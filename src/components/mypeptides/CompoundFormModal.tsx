@@ -5,6 +5,7 @@ import DateTimeField from './DateTimeField';
 import DayOfWeekPicker from './DayOfWeekPicker';
 import ColorPicker from './ColorPicker';
 import { useAppContext } from '../../context/AppContext';
+import { useThemeMode } from '../../context/ThemeModeContext';
 import { compounds } from '../../data/compounds';
 import { userStackToCompound } from '../../utils/blendMath';
 import { nextFreeColor } from '../../theme/colors';
@@ -48,6 +49,7 @@ interface CompoundFormModalProps {
 /** Add Peptide / Edit Settings dialog — mirrors the web app's two dialogs. */
 export default function CompoundFormModal({ visible, onClose, editing }: CompoundFormModalProps) {
   const { userCompounds, userStacks, addUserCompound, updateUserCompound } = useAppContext();
+  const { colors } = useThemeMode();
 
   const [selectedCompoundId, setSelectedCompoundId] = useState('');
   const [doseAmount, setDoseAmount] = useState('');
@@ -247,25 +249,25 @@ export default function CompoundFormModal({ visible, onClose, editing }: Compoun
 
       {vialMath ? (
         <Card className="p-3 mt-2">
-          <Text className="font-mono text-[9px] uppercase tracking-widest text-muted mb-2">Vial Math</Text>
+          <Text className="font-mono text-[9px] uppercase tracking-widest mb-2" style={{ color: colors.muted }}>Vial Math</Text>
           <View className="flex-row flex-wrap">
             <View className="w-1/2 mb-2">
-              <Text className="text-[11px] text-muted">Doses per vial</Text>
-              <Text className="font-mono font-semibold text-base text-ink">{vialMath.dosesPerVial}</Text>
+              <Text className="text-[11px]" style={{ color: colors.muted }}>Doses per vial</Text>
+              <Text className="font-mono font-semibold text-base" style={{ color: colors.text }}>{vialMath.dosesPerVial}</Text>
             </View>
             <View className="w-1/2 mb-2">
-              <Text className="text-[11px] text-muted">Days per vial</Text>
-              <Text className="font-mono font-semibold text-base text-ink">{vialMath.daysPerVial}</Text>
+              <Text className="text-[11px]" style={{ color: colors.muted }}>Days per vial</Text>
+              <Text className="font-mono font-semibold text-base" style={{ color: colors.text }}>{vialMath.daysPerVial}</Text>
             </View>
             {vialMath.vialsForPlan !== null && vialMath.totalDoses !== null ? (
               <>
                 <View className="w-1/2">
-                  <Text className="text-[11px] text-muted">Total doses planned</Text>
-                  <Text className="font-mono font-semibold text-base text-teal-text">{vialMath.totalDoses}</Text>
+                  <Text className="text-[11px]" style={{ color: colors.muted }}>Total doses planned</Text>
+                  <Text className="font-mono font-semibold text-base" style={{ color: colors.tealText }}>{vialMath.totalDoses}</Text>
                 </View>
                 <View className="w-1/2">
-                  <Text className="text-[11px] text-muted">Vials needed</Text>
-                  <Text className="font-mono font-semibold text-base text-teal-text">{vialMath.vialsForPlan}</Text>
+                  <Text className="text-[11px]" style={{ color: colors.muted }}>Vials needed</Text>
+                  <Text className="font-mono font-semibold text-base" style={{ color: colors.tealText }}>{vialMath.vialsForPlan}</Text>
                 </View>
               </>
             ) : null}

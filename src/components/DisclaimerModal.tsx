@@ -35,22 +35,23 @@ export default function DisclaimerModal() {
   };
 
   return (
+    /* Explicit palette colors: CSS variables don't reach native Modal content. */
     <Modal visible={open} transparent animationType="fade">
-      <View className="flex-1 bg-black/60 justify-center px-5">
-        <View className="bg-surface border border-card-border rounded-lg max-h-[85%]">
+      <View className="flex-1 justify-center px-5" style={{ backgroundColor: 'rgba(0, 0, 0, 0.6)' }}>
+        <View className="border rounded-lg max-h-[85%]" style={{ backgroundColor: colors.surface, borderColor: colors.cardBorder }}>
           <View className="flex-row items-center gap-2.5 px-4 pt-4 pb-2">
             <MaterialIcons name="warning-amber" size={26} color={colors.warning} />
-            <Text className="text-base font-semibold text-ink">Important Medical Disclaimer</Text>
+            <Text className="text-base font-semibold" style={{ color: colors.text }}>Important Medical Disclaimer</Text>
           </View>
           <ScrollView contentContainerClassName="px-4 pb-2">
             <Banner tone="warning">
               PeptideIQ is not a medical device, pharmacy, or healthcare provider.
             </Banner>
-            <Text className="text-[13px] text-ink mt-3 mb-2">By using this app you acknowledge:</Text>
+            <Text className="text-[13px] mt-3 mb-2" style={{ color: colors.text }}>By using this app you acknowledge:</Text>
             {POINTS.map((p, i) => (
               <View key={i} className="flex-row gap-2 mb-2">
-                <Text className="text-[13px] text-muted">{'•'}</Text>
-                <Text className="flex-1 text-[13px] leading-5 text-ink">{p}</Text>
+                <Text className="text-[13px]" style={{ color: colors.muted }}>{'•'}</Text>
+                <Text className="flex-1 text-[13px] leading-5" style={{ color: colors.text }}>{p}</Text>
               </View>
             ))}
             <Pressable
@@ -62,7 +63,7 @@ export default function DisclaimerModal() {
                 size={22}
                 color={acknowledged ? colors.warning : colors.muted}
               />
-              <Text className="text-[13px] text-ink">I understand and accept these terms.</Text>
+              <Text className="text-[13px]" style={{ color: colors.text }}>I understand and accept these terms.</Text>
             </Pressable>
           </ScrollView>
           <View className="px-4 pb-4 pt-2">

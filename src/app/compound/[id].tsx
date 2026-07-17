@@ -351,10 +351,10 @@ export default function CompoundDetailScreen() {
       {/* Header */}
       <View className="mb-4">
         <View className="flex-row items-center gap-2 flex-wrap">
-          <Text className="text-2xl font-extrabold text-ink">{compound.genericName}</Text>
+          <Text className="text-2xl font-extrabold" style={{ color: colors.text }}>{compound.genericName}</Text>
           <EvidenceBadge tier={compound.evidenceTier} />
         </View>
-        <Text className="text-[13px] text-muted mt-1">
+        <Text className="text-[13px] mt-1" style={{ color: colors.muted }}>
           {compound.brandNames.length > 0 ? `${compound.brandNames.join(', ')} — ` : ''}
           {compound.category} — {compound.approvalStatus}
         </Text>
@@ -405,7 +405,7 @@ export default function CompoundDetailScreen() {
       {concentration ? (
         <Card className="mb-3 p-3" style={{ borderLeftWidth: 4, borderLeftColor: userCompound.color }}>
           <SectionLabel>Reconstitution</SectionLabel>
-          <Text className="text-[13px] font-semibold text-ink">
+          <Text className="text-[13px] font-semibold" style={{ color: colors.text }}>
             {userCompound.vialStrengthMg} mg vial + {userCompound.waterVolumeMl} mL bac water = {concentration} mcg/mL
           </Text>
         </Card>
@@ -414,7 +414,7 @@ export default function CompoundDetailScreen() {
       {/* Chart */}
       <Card className="p-4 mb-3">
         <View className="flex-row items-center justify-between mb-3 flex-wrap gap-2">
-          <Text className="text-base font-extrabold text-ink">
+          <Text className="text-base font-extrabold" style={{ color: colors.text }}>
             {graphMode === 'bodyLoad' ? 'Body Load' : 'Concentration'}
           </Text>
           <SegmentControl
@@ -447,10 +447,10 @@ export default function CompoundDetailScreen() {
       {/* Next dose card */}
       <Card className="p-4 mb-3">
         <SectionLabel>Next Dose</SectionLabel>
-        <Text className="text-2xl font-extrabold text-primary">
+        <Text className="text-2xl font-extrabold" style={{ color: colors.primary }}>
           {nextDose ? new Date(nextDose.scheduledAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : 'None'}
         </Text>
-        <Text className="text-[13px] text-muted mt-0.5">
+        <Text className="text-[13px] mt-0.5" style={{ color: colors.muted }}>
           {nextDose ? new Date(nextDose.scheduledAt).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' }) : 'No upcoming dose'}
         </Text>
         <Divider className="my-3" />
@@ -494,9 +494,13 @@ export default function CompoundDetailScreen() {
             return (
               <View
                 key={day}
-                className={`w-7 h-7 rounded-full items-center justify-center ${selected ? 'bg-primary-solid' : 'bg-primary-tint'}`}
+                className="w-7 h-7 rounded-full items-center justify-center"
+                style={{ backgroundColor: selected ? colors.primarySolid : colors.primaryTint }}
               >
-                <Text className={`text-[11px] font-extrabold ${selected ? 'text-on-primary' : 'text-muted'}`}>
+                <Text
+                  className="text-[11px] font-extrabold"
+                  style={{ color: selected ? colors.onPrimary : colors.muted }}
+                >
                   {dayLabel(day).slice(0, 1)}
                 </Text>
               </View>
@@ -507,7 +511,7 @@ export default function CompoundDetailScreen() {
 
       {/* Dose history */}
       <Card className="p-4 mb-3">
-        <Text className="text-base font-bold text-ink mb-3">Dose History ({compoundDoses.length})</Text>
+        <Text className="text-base font-bold mb-3" style={{ color: colors.text }}>Dose History ({compoundDoses.length})</Text>
         <Input placeholder="Search dose history" value={doseSearch} onChangeText={setDoseSearch} className="mb-2" />
         <Select
           value={routeFilter}
@@ -516,12 +520,12 @@ export default function CompoundDetailScreen() {
         />
         <View className="mt-3 gap-2">
           {filteredDoses.length === 0 ? (
-            <Text className="text-[13px] text-muted text-center py-3">No doses match the current filters.</Text>
+            <Text className="text-[13px] text-center py-3" style={{ color: colors.muted }}>No doses match the current filters.</Text>
           ) : (
             visibleDoses.map(d => (
-              <View key={d.id} className="border border-card-border rounded-md p-3 bg-surface">
+              <View key={d.id} className="border rounded-md p-3" style={{ borderColor: colors.cardBorder, backgroundColor: colors.surface }}>
                 <View className="flex-row items-center justify-between">
-                  <Text className="text-[13px] font-extrabold text-ink">
+                  <Text className="text-[13px] font-extrabold" style={{ color: colors.text }}>
                     {formatDose(d.doseMcg)}
                     {d.units > 0 ? ` — ${d.units} units` : ''}
                   </Text>
@@ -534,7 +538,7 @@ export default function CompoundDetailScreen() {
                     </Pressable>
                   </View>
                 </View>
-                <Text className="text-[11px] text-muted mt-1">
+                <Text className="text-[11px] mt-1" style={{ color: colors.muted }}>
                   {new Date(d.timestamp).toLocaleString(undefined, {
                     weekday: 'short',
                     month: 'short',
@@ -546,7 +550,7 @@ export default function CompoundDetailScreen() {
                 </Text>
                 <View className="flex-row items-center gap-2 mt-1.5">
                   <Chip label={d.route} tone="primary" />
-                  <Text className="text-[11px] text-muted flex-1" numberOfLines={1}>
+                  <Text className="text-[11px] flex-1" style={{ color: colors.muted }} numberOfLines={1}>
                     {d.injectionSite || 'No site'}
                     {d.notes ? ` — ${d.notes}` : ''}
                   </Text>
@@ -587,7 +591,7 @@ export default function CompoundDetailScreen() {
         }
       >
         <DateTimeField label="Schedule Anchor — Date & Time" value={editStartDate} onChange={setEditStartDate} />
-        <Text className="text-[11px] text-muted -mt-2 mb-3">
+        <Text className="text-[11px] -mt-2 mb-3" style={{ color: colors.muted }}>
           All future scheduled doses are computed from this datetime + your frequency.
         </Text>
         <Field label="Dose Amount (mg)">
@@ -596,7 +600,7 @@ export default function CompoundDetailScreen() {
         <Select label="Frequency" value={editFreq} options={FREQ_OPTIONS} onChange={setEditFreq} />
         <Select label="Route" value={editRoute} options={ROUTE_OPTIONS} onChange={setEditRoute} />
         <Divider className="my-3" />
-        <Text className="text-xs text-muted font-semibold mb-2">Reconstitution (for auto-calculating syringe units)</Text>
+        <Text className="text-xs font-semibold mb-2" style={{ color: colors.muted }}>Reconstitution (for auto-calculating syringe units)</Text>
         <Field label="Vial Strength (mg)">
           <Input value={editVial} onChangeText={setEditVial} keyboardType="decimal-pad" />
         </Field>
@@ -669,7 +673,7 @@ export default function CompoundDetailScreen() {
         <Field label="Syringe Units">
           <Input value={logUnits} onChangeText={setLogUnits} keyboardType="decimal-pad" />
         </Field>
-        <Text className="text-[11px] text-muted -mt-2 mb-3">
+        <Text className="text-[11px] -mt-2 mb-3" style={{ color: colors.muted }}>
           {activeVialStrengthMg > 0 && activeWaterVolumeMl > 0
             ? `Auto-calculated from ${activeVialStrengthMg} mg vial + ${activeWaterVolumeMl} mL water`
             : 'Set vial strength & water in Settings to auto-calculate'}
@@ -709,7 +713,7 @@ export default function CompoundDetailScreen() {
         <Field label="Vial Strength (mg)">
           <Input value={vialStrengthInput} onChangeText={setVialStrengthInput} keyboardType="decimal-pad" />
         </Field>
-        <Text className="text-[11px] text-muted -mt-2 mb-3">
+        <Text className="text-[11px] -mt-2 mb-3" style={{ color: colors.muted }}>
           Only doses logged on or after the opened date are counted against this vial.
         </Text>
         <Field label="Bac Water Volume (mL)">
@@ -732,22 +736,23 @@ function MiniCard({ label, value, detail, color, progress, flat }: {
   progress?: number;
   flat?: boolean;
 }) {
+  const { colors } = useThemeMode();
   return (
     <Card
       className="p-3 grow basis-[45%]"
       style={color && !flat ? { borderLeftWidth: 4, borderLeftColor: color } : undefined}
     >
       <SectionLabel>{label}</SectionLabel>
-      <Text className="font-mono text-lg font-extrabold text-ink" numberOfLines={1}>
+      <Text className="font-mono text-lg font-extrabold" style={{ color: colors.text }} numberOfLines={1}>
         {value}
       </Text>
       {detail ? (
-        <Text className="text-[11px] text-muted mt-0.5" numberOfLines={1}>
+        <Text className="text-[11px] mt-0.5" style={{ color: colors.muted }} numberOfLines={1}>
           {detail}
         </Text>
       ) : null}
       {progress !== undefined ? (
-        <View className="h-1.5 bg-divider rounded-full overflow-hidden mt-2">
+        <View className="h-1.5 rounded-full overflow-hidden mt-2" style={{ backgroundColor: colors.divider }}>
           <View className="h-full rounded-full" style={{ width: `${progress}%`, backgroundColor: color ?? '#0EA5B7' }} />
         </View>
       ) : null}
@@ -756,10 +761,11 @@ function MiniCard({ label, value, detail, color, progress, flat }: {
 }
 
 function MetricLine({ label, value }: { label: string; value: string }) {
+  const { colors } = useThemeMode();
   return (
-    <View className="flex-row justify-between gap-3 py-2 border-b border-divider">
-      <Text className="text-xs text-muted">{label}</Text>
-      <Text className="text-xs font-extrabold text-ink text-right flex-1" numberOfLines={1}>
+    <View className="flex-row justify-between gap-3 py-2 border-b" style={{ borderColor: colors.divider }}>
+      <Text className="text-xs" style={{ color: colors.muted }}>{label}</Text>
+      <Text className="text-xs font-extrabold text-right flex-1" style={{ color: colors.text }} numberOfLines={1}>
         {value}
       </Text>
     </View>
@@ -772,17 +778,28 @@ function SegmentControl({ options, value, onChange, className = '' }: {
   onChange: (v: string) => void;
   className?: string;
 }) {
+  const { colors } = useThemeMode();
   return (
-    <View className={`flex-row border border-outline rounded-md overflow-hidden self-start ${className}`}>
+    <View
+      className={`flex-row border rounded-md overflow-hidden self-start ${className}`}
+      style={{ borderColor: colors.outline }}
+    >
       {options.map((o, i) => {
         const active = o.value === value;
         return (
           <Pressable
             key={o.value}
-            className={`px-2.5 py-1.5 ${active ? 'bg-primary-tint' : ''} ${i > 0 ? 'border-l border-outline' : ''}`}
+            className={`px-2.5 py-1.5 ${i > 0 ? 'border-l' : ''}`}
+            style={{
+              backgroundColor: active ? colors.primaryTint : undefined,
+              borderLeftColor: i > 0 ? colors.outline : undefined,
+            }}
             onPress={() => onChange(o.value)}
           >
-            <Text className={`font-mono text-[10px] uppercase tracking-wider ${active ? 'text-teal-text font-medium' : 'text-muted'}`}>
+            <Text
+              className={`font-mono text-[10px] uppercase tracking-wider ${active ? 'font-medium' : ''}`}
+              style={{ color: active ? colors.tealText : colors.muted }}
+            >
               {o.label}
             </Text>
           </Pressable>

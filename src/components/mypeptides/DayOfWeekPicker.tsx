@@ -1,7 +1,17 @@
 import { Pressable, Text, View } from '../../tw';
 import { Field } from '../ui';
+import { useThemeMode } from '../../context/ThemeModeContext';
 
-const DAYS = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+// 0=Sun..6=Sat, laid out Mon-first to match a typical week view.
+const DAYS = [
+  { num: 1, letter: 'M' },
+  { num: 2, letter: 'T' },
+  { num: 3, letter: 'W' },
+  { num: 4, letter: 'T' },
+  { num: 5, letter: 'F' },
+  { num: 6, letter: 'S' },
+  { num: 0, letter: 'S' },
+];
 
 interface DayOfWeekPickerProps {
   value: number[]; // 0=Sun..6=Sat
@@ -11,29 +21,47 @@ interface DayOfWeekPickerProps {
 }
 
 export default function DayOfWeekPicker({ value, onChange, label = 'Specific Days', helperText }: DayOfWeekPickerProps) {
+  const { colors } = useThemeMode();
   const toggle = (day: number) => {
     onChange(value.includes(day) ? value.filter(d => d !== day) : [...value, day].sort());
   };
 
   return (
     <Field label={label}>
-      <View className="flex-row gap-1.5">
-        {DAYS.map((name, i) => {
-          const active = value.includes(i);
+      {/* Explicit inline styles: the circle geometry, border, and selected
+          fill must render regardless of CSS-variable resolution. */}
+      <View className="flex-row justify-between">
+        {DAYS.map(d => {
+          const active = value.includes(d.num);
           return (
             <Pressable
-              key={name}
-              className={`flex-1 items-center rounded-md border py-2 ${active ? 'bg-primary-tint border-primary' : 'border-outline bg-surface'}`}
-              onPress={() => toggle(i)}
+              key={d.num}
+              onPress={() => toggle(d.num)}
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 20,
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderWidth: 1.5,
+                backgroundColor: active ? colors.primarySolid : colors.surface,
+                borderColor: active ? colors.primarySolid : colors.outline,
+              }}
             >
-              <Text className={`font-mono text-[10px] uppercase tracking-wide ${active ? 'text-teal-text font-semibold' : 'text-muted'}`}>
-                {name}
+              <Text
+                style={{
+                  fontSize: 13,
+                  fontWeight: '600',
+                  color: active ? colors.onPrimary : colors.muted,
+                }}
+              >
+                {d.letter}
               </Text>
             </Pressable>
           );
         })}
       </View>
-      {helperText ? <Text className="text-[11px] text-muted mt-1">{helperText}</Text> : null}
+      {helperText ? <Text className="text-[11px] text-muted mt-1.5">{helperText}</Text> : null}
     </Field>
   );
 }

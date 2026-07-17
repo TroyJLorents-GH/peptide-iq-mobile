@@ -16,6 +16,7 @@ export const palette = {
     violetText: '#5B21B6',
     bg: '#F8FAFC',
     surface: '#FFFFFF',
+    surfaceRaised: '#FFFFFF',
     text: '#0F172A',
     muted: '#64748B',
     divider: 'rgba(15, 23, 42, 0.08)',
@@ -25,6 +26,11 @@ export const palette = {
     warning: '#D97706',
     success: '#059669',
     info: '#0EA5B7',
+    // Tinted fills for chips/banners (mirrors global.css *-tint tokens)
+    primaryTint: 'rgba(14, 165, 183, 0.08)',
+    errorTint: 'rgba(220, 38, 38, 0.08)',
+    warningTint: 'rgba(217, 119, 6, 0.1)',
+    successTint: 'rgba(5, 150, 105, 0.08)',
   },
   dark: {
     primary: '#22D3EE',
@@ -37,6 +43,7 @@ export const palette = {
     violetText: '#C4B5FD',
     bg: '#0B1120',
     surface: '#111827',
+    surfaceRaised: '#1F2937',
     text: '#F1F5F9',
     muted: '#94A3B8',
     divider: 'rgba(148, 163, 184, 0.16)',
@@ -46,10 +53,27 @@ export const palette = {
     warning: '#FBBF24',
     success: '#34D399',
     info: '#22D3EE',
+    // Tinted fills for chips/banners (mirrors global.css *-tint tokens)
+    primaryTint: 'rgba(34, 211, 238, 0.14)',
+    errorTint: 'rgba(248, 113, 113, 0.14)',
+    warningTint: 'rgba(251, 191, 36, 0.14)',
+    successTint: 'rgba(52, 211, 153, 0.14)',
   },
 } as const;
 
 export type Palette = (typeof palette)[ThemeMode];
+
+/** Linearly blend two hex colors. t=0 → hex, t=1 → target. */
+export function mixHex(hex: string, target: string, t: number): string {
+  const parse = (h: string) => {
+    const s = h.replace('#', '');
+    return [parseInt(s.slice(0, 2), 16), parseInt(s.slice(2, 4), 16), parseInt(s.slice(4, 6), 16)];
+  };
+  const [r1, g1, b1] = parse(hex);
+  const [r2, g2, b2] = parse(target);
+  const mix = (a: number, b: number) => Math.round(a + (b - a) * t);
+  return `#${[mix(r1, r2), mix(g1, g2), mix(b1, b2)].map(v => v.toString(16).padStart(2, '0')).join('')}`;
+}
 
 // Chart line colors — clinical, distinct, colorblind-friendly (same as web)
 export const CHART_COLORS = [

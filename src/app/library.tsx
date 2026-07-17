@@ -158,37 +158,39 @@ export default function LibraryScreen() {
         c.description.toLowerCase().includes(q),
       );
     }
-    return list;
+    // Alphabetical by name for easy scanning.
+    return [...list].sort((a, b) => a.genericName.localeCompare(b.genericName));
   })();
 
   return (
     <Screen>
-      <Text className="text-xs text-muted mb-3">
+      <Text className="text-xs mb-3" style={{ color: colors.muted }}>
         {compounds.length} compounds — each entry shows evidence tier, PK profile, dosing, and safety data.
       </Text>
 
       <View className="flex-row gap-2 mb-3">
         <TouchableOpacity
           className="flex-1 flex-row items-center justify-center gap-1.5 rounded-md px-3 py-2.5"
-          style={{ backgroundColor: '#9333EA' }}
+          style={{ backgroundColor: colors.primarySolid }}
           onPress={() => setStackBuilderOpen(true)}
           activeOpacity={0.7}
         >
-          <MaterialIcons name="layers" size={16} color="#fff" />
-          <Text className="text-[13px] font-semibold text-white">Add Your Stack</Text>
+          <MaterialIcons name="layers" size={16} color={colors.onPrimary} />
+          <Text className="text-[13px] font-semibold" style={{ color: colors.onPrimary }}>Add Your Stack</Text>
         </TouchableOpacity>
         <TouchableOpacity
-          className="flex-1 flex-row items-center justify-center gap-1.5 rounded-md px-3 py-2.5 bg-primary-solid"
+          className="flex-1 flex-row items-center justify-center gap-1.5 rounded-md px-3 py-2.5 border"
+          style={{ borderColor: colors.primary, backgroundColor: 'transparent' }}
           onPress={() => { setRequestOpen(true); setReqSuccess(''); setReqError(''); }}
           activeOpacity={0.7}
         >
-          <MaterialIcons name="add-circle-outline" size={16} color="#fff" />
-          <Text className="text-[13px] font-semibold text-white">Request a Peptide</Text>
+          <MaterialIcons name="add-circle-outline" size={16} color={colors.primary} />
+          <Text className="text-[13px] font-semibold" style={{ color: colors.primary }}>Request a Peptide</Text>
         </TouchableOpacity>
       </View>
 
       {/* Search */}
-      <View className="flex-row items-center border border-outline rounded-md bg-surface px-3 mb-3">
+      <View className="flex-row items-center border rounded-md px-3 mb-3" style={{ borderColor: colors.outline, backgroundColor: colors.surface }}>
         <MaterialIcons name="search" size={18} color={colors.muted} />
         <Input
           value={search}
@@ -205,10 +207,14 @@ export default function LibraryScreen() {
           return (
             <Pressable
               key={t}
-              className={`rounded-full border px-3 py-1.5 ${active ? 'bg-primary-tint border-primary' : 'border-outline'}`}
+              className="rounded-full border px-3 py-1.5"
+              style={active ? { backgroundColor: colors.primaryTint, borderColor: colors.primary } : { borderColor: colors.outline }}
               onPress={() => setTab(i)}
             >
-              <Text className={`font-mono text-[11px] uppercase tracking-wider ${active ? 'text-teal-text font-medium' : 'text-muted'}`}>
+              <Text
+                className={`font-mono text-[11px] uppercase tracking-wider ${active ? 'font-medium' : ''}`}
+                style={{ color: active ? colors.tealText : colors.muted }}
+              >
                 {t} ({tabCounts[i]})
               </Text>
             </Pressable>
@@ -222,9 +228,9 @@ export default function LibraryScreen() {
           <Card className="mb-2.5 p-3.5">
             <View className="flex-row items-center justify-between gap-2">
               <View className="flex-1">
-                <Text className="text-sm font-semibold text-ink">{compound.genericName}</Text>
+                <Text className="text-sm font-semibold" style={{ color: colors.text }}>{compound.genericName}</Text>
                 {compound.brandNames.length > 0 ? (
-                  <Text className="text-xs text-muted mt-0.5" numberOfLines={1}>
+                  <Text className="text-xs mt-0.5" style={{ color: colors.muted }} numberOfLines={1}>
                     ({compound.brandNames.join(', ')})
                   </Text>
                 ) : null}
@@ -246,31 +252,31 @@ export default function LibraryScreen() {
               {compound.category !== 'blend' ? <Chip label={compound.category} /> : null}
             </View>
             <View className="flex-row gap-4 mt-2">
-              <Text className="font-mono text-[10px] text-muted">t½ {formatHalfLife(compound.pk.halfLifeHours)}</Text>
-              <Text className="font-mono text-[10px] text-muted">{formatFrequency(compound.pk.doseFrequencyHours)}</Text>
+              <Text className="font-mono text-[10px]" style={{ color: colors.muted }}>t½ {formatHalfLife(compound.pk.halfLifeHours)}</Text>
+              <Text className="font-mono text-[10px]" style={{ color: colors.muted }}>{formatFrequency(compound.pk.doseFrequencyHours)}</Text>
             </View>
           </Card>
         </Pressable>
       ))}
 
       {filteredCompounds.length === 0 ? (
-        <Text className="text-center text-muted py-8 text-sm">No compounds match your search.</Text>
+        <Text className="text-center py-8 text-sm" style={{ color: colors.muted }}>No compounds match your search.</Text>
       ) : null}
 
       {/* My requests */}
       {myRequests.length > 0 ? (
         <Card className="mt-4 p-3.5">
-          <Text className="text-sm font-semibold text-ink mb-2">Your Requests</Text>
+          <Text className="text-sm font-semibold mb-2" style={{ color: colors.text }}>Your Requests</Text>
           {myRequests.map((r, i) => (
             <View key={r.id}>
               {i > 0 ? <Divider /> : null}
               <View className="flex-row items-center justify-between py-2">
                 <View className="flex-1 mr-2">
-                  <Text className="text-[13px] font-medium text-ink">
+                  <Text className="text-[13px] font-medium" style={{ color: colors.text }}>
                     {r.peptide_name}
-                    {r.brand_names ? <Text className="text-xs text-muted"> ({r.brand_names})</Text> : null}
+                    {r.brand_names ? <Text className="text-xs" style={{ color: colors.muted }}> ({r.brand_names})</Text> : null}
                   </Text>
-                  {r.category ? <Text className="text-[11px] text-muted">{r.category}</Text> : null}
+                  {r.category ? <Text className="text-[11px]" style={{ color: colors.muted }}>{r.category}</Text> : null}
                 </View>
                 <Chip
                   label={r.status}
@@ -309,7 +315,7 @@ export default function LibraryScreen() {
           />
         }
       >
-        <Text className="text-[13px] text-muted mb-3">
+        <Text className="text-[13px] mb-3" style={{ color: colors.muted }}>
           Can't find a compound in our library? Let us know and we'll add it.
         </Text>
         {reqSuccess ? <View className="mb-3"><Banner tone="success">{reqSuccess}</Banner></View> : null}
@@ -343,10 +349,11 @@ export default function LibraryScreen() {
 }
 
 function InfoRow({ label, value }: { label: string; value: string }) {
+  const { colors } = useThemeMode();
   return (
     <View className="flex-row justify-between items-baseline py-1 gap-3">
-      <Text className="text-xs text-muted">{label}</Text>
-      <Text className="text-xs font-semibold text-ink flex-1 text-right">{value}</Text>
+      <Text className="text-xs" style={{ color: colors.muted }}>{label}</Text>
+      <Text className="text-xs font-semibold flex-1 text-right" style={{ color: colors.text }}>{value}</Text>
     </View>
   );
 }
@@ -378,10 +385,10 @@ function CompoundDetailModal({ compound, onClose, onDeleteStack }: {
       </View>
 
       {compound.brandNames.length > 0 ? (
-        <Text className="text-xs text-muted mb-2">({compound.brandNames.join(', ')})</Text>
+        <Text className="text-xs mb-2" style={{ color: colors.muted }}>({compound.brandNames.join(', ')})</Text>
       ) : null}
 
-      <Text className="text-[13px] leading-5 text-muted mb-3">{compound.description}</Text>
+      <Text className="text-[13px] leading-5 mb-3" style={{ color: colors.muted }}>{compound.description}</Text>
 
       {/* Blend composition */}
       {compound.category === 'blend' && compound.blendComposition && compound.blendComposition.length > 0 ? (
@@ -398,13 +405,13 @@ function CompoundDetailModal({ compound, onClose, onDeleteStack }: {
               className="flex-row justify-between items-baseline py-1.5 border-b"
               style={{ borderColor: 'rgba(168, 85, 247, 0.2)' }}
             >
-              <Text className="text-[13px] font-semibold text-ink flex-1 mr-2">{c.label}</Text>
+              <Text className="text-[13px] font-semibold flex-1 mr-2" style={{ color: colors.text }}>{c.label}</Text>
               <Text className="font-mono text-xs font-semibold" style={{ color: VIOLET }}>
-                {c.mgPerVial} mg <Text className="text-[10px] text-muted font-normal">({(c.pctByMass * 100).toFixed(0)}%)</Text>
+                {c.mgPerVial} mg <Text className="text-[10px] font-normal" style={{ color: colors.muted }}>({(c.pctByMass * 100).toFixed(0)}%)</Text>
               </Text>
             </View>
           ))}
-          <Text className="text-[10px] text-muted mt-2">
+          <Text className="text-[10px] mt-2" style={{ color: colors.muted }}>
             PK and dosing fields below are aggregated from component data — see each component's library entry for exact values.
           </Text>
         </View>
@@ -412,17 +419,17 @@ function CompoundDetailModal({ compound, onClose, onDeleteStack }: {
 
       {/* Boxed warning */}
       {compound.safety.boxedWarning ? (
-        <View className="rounded-lg p-3 mb-3 bg-danger-tint border border-danger">
+        <View className="rounded-lg p-3 mb-3 border" style={{ backgroundColor: colors.errorTint, borderColor: colors.error }}>
           <View className="flex-row items-center gap-1.5 mb-1">
             <MaterialIcons name="warning-amber" size={18} color={colors.error} />
-            <Text className="text-xs font-bold text-danger">BOXED WARNING</Text>
+            <Text className="text-xs font-bold" style={{ color: colors.error }}>BOXED WARNING</Text>
           </View>
-          <Text className="text-[13px] leading-5 text-danger">{compound.safety.boxedWarning}</Text>
+          <Text className="text-[13px] leading-5" style={{ color: colors.error }}>{compound.safety.boxedWarning}</Text>
         </View>
       ) : null}
 
       {/* PK */}
-      <Text className="text-sm font-semibold text-ink mb-1">Pharmacokinetics</Text>
+      <Text className="text-sm font-semibold mb-1" style={{ color: colors.text }}>Pharmacokinetics</Text>
       <InfoRow label="Half-life" value={formatHalfLife(compound.pk.halfLifeHours)} />
       <InfoRow label="Tmax" value={`${compound.pk.tmaxHours} hours`} />
       <InfoRow label="Bioavailability" value={`${(compound.pk.bioavailability * 100).toFixed(0)}%`} />
@@ -435,14 +442,14 @@ function CompoundDetailModal({ compound, onClose, onDeleteStack }: {
       <Divider className="my-3" />
 
       {/* Dosing */}
-      <Text className="text-sm font-semibold text-ink mb-1">Dosing</Text>
+      <Text className="text-sm font-semibold mb-1" style={{ color: colors.text }}>Dosing</Text>
       <InfoRow label="Start dose" value={compound.dosing.standardStartDose} />
       <InfoRow label="Max dose" value={compound.dosing.maxDose} />
       {compound.dosing.titrationSteps.length > 0 ? (
         <View className="mt-1 mb-1">
-          <Text className="text-xs font-semibold text-muted mb-0.5">Titration:</Text>
+          <Text className="text-xs font-semibold mb-0.5" style={{ color: colors.muted }}>Titration:</Text>
           {compound.dosing.titrationSteps.map((step, i) => (
-            <Text key={i} className="text-xs text-muted pl-2 leading-5">
+            <Text key={i} className="text-xs pl-2 leading-5" style={{ color: colors.muted }}>
               {i + 1}. {step}
             </Text>
           ))}
@@ -453,10 +460,10 @@ function CompoundDetailModal({ compound, onClose, onDeleteStack }: {
       <Divider className="my-3" />
 
       {/* Safety */}
-      <Text className="text-sm font-semibold text-ink mb-2">Safety & Side Effects</Text>
+      <Text className="text-sm font-semibold mb-2" style={{ color: colors.text }}>Safety & Side Effects</Text>
       {compound.safety.commonSideEffects.length > 0 ? (
         <View className="mb-3">
-          <Text className="text-xs font-semibold text-warn mb-1.5">Common Side Effects</Text>
+          <Text className="text-xs font-semibold mb-1.5" style={{ color: colors.warning }}>Common Side Effects</Text>
           <View className="flex-row flex-wrap gap-1.5">
             {compound.safety.commonSideEffects.map(se => (
               <Chip key={se} label={se} />
@@ -466,7 +473,7 @@ function CompoundDetailModal({ compound, onClose, onDeleteStack }: {
       ) : null}
       {compound.safety.seriousSideEffects.length > 0 ? (
         <View className="mb-3">
-          <Text className="text-xs font-semibold text-danger mb-1.5">Serious Side Effects</Text>
+          <Text className="text-xs font-semibold mb-1.5" style={{ color: colors.error }}>Serious Side Effects</Text>
           <View className="flex-row flex-wrap gap-1.5">
             {compound.safety.seriousSideEffects.map(se => (
               <Chip key={se} label={se} tone="danger" />
@@ -484,12 +491,12 @@ function CompoundDetailModal({ compound, onClose, onDeleteStack }: {
       {/* Sources */}
       {compound.sources.length > 0 ? (
         <View className="mt-1">
-          <Text className="text-xs font-semibold text-muted mb-1.5">Sources</Text>
+          <Text className="text-xs font-semibold mb-1.5" style={{ color: colors.muted }}>Sources</Text>
           {compound.sources.map((src, i) => (
             <View key={i} className="flex-row items-center gap-2 mb-1.5">
               <EvidenceBadge tier={src.type} />
               <TouchableOpacity onPress={() => Linking.openURL(src.url)} className="flex-1">
-                <Text className="text-xs text-primary underline" numberOfLines={1}>{src.label}</Text>
+                <Text className="text-xs underline" style={{ color: colors.primary }} numberOfLines={1}>{src.label}</Text>
               </TouchableOpacity>
             </View>
           ))}

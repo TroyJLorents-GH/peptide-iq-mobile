@@ -51,20 +51,22 @@ export default function DateTimeField({ label, value, onChange, mode = 'datetime
     <Field label={label}>
       <View className="flex-row gap-2">
         <Pressable
-          className="flex-1 border border-outline rounded-md px-3 py-2.5 flex-row items-center justify-between bg-surface"
+          className="flex-1 border rounded-md px-3 py-2.5 flex-row items-center justify-between"
+          style={{ borderColor: colors.outline, backgroundColor: colors.surface }}
           onPress={() => setAndroidShow('date')}
         >
-          <Text className="text-sm text-ink">
+          <Text className="text-sm" style={{ color: colors.text }}>
             {value.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
           </Text>
           <MaterialIcons name="calendar-today" size={16} color={colors.muted} />
         </Pressable>
         {mode === 'datetime' ? (
           <Pressable
-            className="flex-1 border border-outline rounded-md px-3 py-2.5 flex-row items-center justify-between bg-surface"
+            className="flex-1 border rounded-md px-3 py-2.5 flex-row items-center justify-between"
+            style={{ borderColor: colors.outline, backgroundColor: colors.surface }}
             onPress={() => setAndroidShow('time')}
           >
-            <Text className="text-sm text-ink">
+            <Text className="text-sm" style={{ color: colors.text }}>
               {value.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}
             </Text>
             <MaterialIcons name="schedule" size={16} color={colors.muted} />

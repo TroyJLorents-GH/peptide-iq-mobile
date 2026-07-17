@@ -1,16 +1,20 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'expo-router';
+import { Image } from 'expo-image';
 import { MaterialIcons } from '@expo/vector-icons';
 import { Pressable, Text, View } from '../../tw';
+import GradientView from '../../components/Gradient';
+import { AnimatedCount, Rise } from '../../components/Anim';
 import { Banner, Button, Card, Chip, Field, Input, Screen } from '../../components/ui';
 import LineChart, { type ChartSeries } from '../../components/LineChart';
+import DailyRangeChart, { type RangeDay } from '../../components/DailyRangeChart';
 import { useAppContext } from '../../context/AppContext';
 import { useThemeMode } from '../../context/ThemeModeContext';
 import { calculateSerumCurve, getCurrentConcentration, type GraphMode } from '../../utils/serumModel';
 import { calculateDose, formatDose } from '../../utils/calculator';
 import { getUpcomingPlannedDoses } from '../../utils/schedule';
 import { vialRemainingMg } from '../../utils/tracking';
-import { CHART_COLORS } from '../../theme/colors';
+import { CHART_COLORS, mixHex } from '../../theme/colors';
 import type { UserCompound } from '../../types';
 
 const RANGE_OPTIONS = [
@@ -30,17 +34,26 @@ function Segmented<T extends string | number>({ value, options, onChange }: {
   options: { value: T; label: string }[];
   onChange: (v: T) => void;
 }) {
+  const { colors } = useThemeMode();
   return (
-    <View className="flex-row rounded-md border border-outline overflow-hidden self-start">
+    <View className="flex-row rounded-md border overflow-hidden self-start" style={{ borderColor: colors.outline }}>
       {options.map((opt, i) => {
         const active = opt.value === value;
         return (
           <Pressable
             key={String(opt.value)}
-            className={`px-2.5 py-1.5 ${active ? 'bg-primary-tint' : ''} ${i > 0 ? 'border-l border-outline' : ''}`}
+            className="px-2.5 py-1.5"
+            style={{
+              backgroundColor: active ? colors.primaryTint : 'transparent',
+              borderLeftWidth: i > 0 ? 1 : 0,
+              borderLeftColor: colors.outline,
+            }}
             onPress={() => onChange(opt.value)}
           >
-            <Text className={`font-mono text-[10px] uppercase tracking-wider ${active ? 'text-teal-text font-medium' : 'text-muted'}`}>
+            <Text
+              className={`font-mono text-[10px] uppercase tracking-wider ${active ? 'font-medium' : ''}`}
+              style={{ color: active ? colors.tealText : colors.muted }}
+            >
               {opt.label}
             </Text>
           </Pressable>
@@ -57,6 +70,7 @@ export default function DashboardScreen() {
 
   const [rangeDays, setRangeDays] = useState(7);
   const [graphMode, setGraphMode] = useState<GraphMode>('bodyLoad');
+  const [chartType, setChartType] = useState<'line' | 'dailyRange'>('line');
 
   const activeCompounds = useMemo(() => userCompounds.filter(uc => uc.active), [userCompounds]);
 
@@ -92,6 +106,36 @@ export default function DashboardScreen() {
       })
       .filter(Boolean) as ChartSeries[];
   }, [activeCompounds, doseLogs, rangeDays, graphMode, resolveCompound]);
+
+  // Daily min→max range per compound, derived from the same curve, for the
+  // "Daily Range" bar view (mirrors the web toggle).
+  const dailyRanges = useMemo<RangeDay[]>(() => {
+    if (chartSeries.length === 0) return [];
+    const startOfDay = (ts: number) => {
+      const d = new Date(ts);
+      d.setHours(0, 0, 0, 0);
+      return d.getTime();
+    };
+    const dayStarts = new Set<number>();
+    const seriesDayRanges = chartSeries.map(s => {
+      const m = new Map<number, { min: number; max: number }>();
+      for (const p of s.points) {
+        const day = startOfDay(p.x);
+        dayStarts.add(day);
+        const cur = m.get(day);
+        if (!cur) m.set(day, { min: p.y, max: p.y });
+        else { cur.min = Math.min(cur.min, p.y); cur.max = Math.max(cur.max, p.y); }
+      }
+      return { color: s.color, m };
+    });
+    return [...dayStarts].sort((a, b) => a - b).map(day => ({
+      ts: day,
+      bars: seriesDayRanges.map(sd => {
+        const r = sd.m.get(day) ?? { min: 0, max: 0 };
+        return { color: sd.color, min: r.min, max: r.max };
+      }),
+    }));
+  }, [chartSeries]);
 
   const currentLevels = useMemo(() => {
     return activeCompounds
@@ -140,60 +184,112 @@ export default function DashboardScreen() {
 
   return (
     <Screen>
-      <View className="flex-row items-center gap-1.5 mb-3 flex-wrap">
-        <MaterialIcons name="science" size={15} color={colors.primary} />
-        <Text className="text-xs text-muted">
-          Estimated from population PK — <Text className="text-warn font-bold">not a measured lab value.</Text>
-        </Text>
-      </View>
+      {/* Brand hero */}
+      <GradientView
+        colors={['#0E7490', '#0891A8', '#6D5AE6']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
+        borderRadius={20}
+        className="rounded-[20px] px-4 py-5 mb-3 overflow-hidden items-center"
+      >
+        <View className="absolute top-3 right-3 rounded-full px-2.5 py-1" style={{ backgroundColor: 'rgba(255,255,255,0.15)' }}>
+          <Text className="font-mono text-[10px] uppercase tracking-wider text-white font-semibold">Beta</Text>
+        </View>
+        <View className="flex-row items-center gap-2.5">
+          <Image
+            source={require('../../../assets/images/icon.png')}
+            style={{ width: 40, height: 40, borderRadius: 11 }}
+            contentFit="contain"
+          />
+          <Text className="text-white text-2xl font-extrabold">PeptideIQ</Text>
+        </View>
+        <Text className="text-[12px] mt-1" style={{ color: 'rgba(255,255,255,0.8)' }}>Track. Dose. Optimize.</Text>
+        <View className="flex-row items-center gap-1.5 mt-2.5">
+          <MaterialIcons name="science" size={13} color="rgba(255,255,255,0.85)" />
+          <Text className="text-[11px]" style={{ color: 'rgba(255,255,255,0.85)' }}>
+            Estimated from population PK — <Text className="font-bold text-white">not a lab value.</Text>
+          </Text>
+        </View>
+      </GradientView>
 
       {isNewUser ? (
         <NewUserCard />
       ) : (
         <>
           {/* Stat cards */}
-          <View className="flex-row flex-wrap gap-2 mb-3">
-            <StatCard icon="science" label="Active Compounds" value={String(activeCompounds.length)} />
-            <StatCard icon="trending-up" label="Doses Logged" value={String(totalDoses)} />
-            <StatCard
-              icon="event"
-              label="Last Dose"
-              value={lastDose ? resolveCompound(lastDose.compoundId)?.genericName ?? '?' : 'None'}
-              detail={lastDose ? new Date(lastDose.timestamp).toLocaleDateString() : undefined}
-            />
-          </View>
+          <Rise delay={60}>
+            <View className="flex-row flex-wrap gap-2 mb-3">
+              <StatCard icon="science" label="Active Compounds" value={String(activeCompounds.length)} />
+              <StatCard icon="trending-up" label="Doses Logged" value={String(totalDoses)} />
+              <StatCard
+                icon="event"
+                label="Last Dose"
+                value={lastDose ? resolveCompound(lastDose.compoundId)?.genericName ?? '?' : 'None'}
+                detail={lastDose ? new Date(lastDose.timestamp).toLocaleDateString() : undefined}
+              />
+            </View>
+          </Rise>
 
           {/* Current levels */}
           {currentLevels.length > 0 ? (
+            <Rise delay={120}>
             <View className="flex-row flex-wrap gap-2 mb-3">
               {currentLevels.map(c => (
-                <View
+                <GradientView
                   key={c.userCompound.id}
-                  className="basis-[47%] grow bg-surface border border-card-border rounded-lg px-3.5 py-3"
-                  style={{ borderLeftWidth: 3, borderLeftColor: c.color }}
+                  colors={[mixHex(c.color, '#000000', 0.08), mixHex(c.color, '#0B1120', 0.52)]}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1.1 }}
+                  borderRadius={16}
+                  className="basis-[47%] grow rounded-2xl px-3.5 py-3.5"
+                  style={{
+                    shadowColor: c.color,
+                    shadowOpacity: 0.3,
+                    shadowRadius: 12,
+                    shadowOffset: { width: 0, height: 5 },
+                    elevation: 3,
+                  }}
                 >
-                  <Text className="font-mono text-[10px] uppercase tracking-wider font-bold" style={{ color: c.color }} numberOfLines={1}>
-                    {c.name}
-                  </Text>
-                  <Text className="font-mono font-bold text-[24px] text-ink leading-7 mt-1.5">
-                    {graphMode === 'bodyLoad' ? c.level.toFixed(3) : c.level.toFixed(1)}
-                  </Text>
-                  <Text className="font-mono text-[10px] uppercase tracking-wide text-muted mt-1 font-bold">
+                  <View className="flex-row items-center gap-1.5">
+                    <View className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: 'rgba(255,255,255,0.9)' }} />
+                    <Text className="font-mono text-[10px] uppercase tracking-wider font-bold flex-1 text-white" numberOfLines={1}>
+                      {c.name}
+                    </Text>
+                  </View>
+                  <AnimatedCount
+                    value={c.level}
+                    decimals={graphMode === 'bodyLoad' ? 3 : 1}
+                    className="font-mono font-extrabold text-[26px] leading-8 mt-2 text-white"
+                  />
+                  <Text className="font-mono text-[10px] uppercase tracking-wide font-bold mt-0.5" style={{ color: 'rgba(255,255,255,0.82)' }}>
                     {graphMode === 'bodyLoad' ? 'mg · remaining' : 'mcg'}
                   </Text>
-                </View>
+                </GradientView>
               ))}
             </View>
+            </Rise>
           ) : null}
 
           {/* Chart */}
           <Card className="p-4 mb-3">
             <View className="flex-row items-center gap-2 mb-2 flex-wrap">
-              <Text className="text-base font-bold text-ink">
+              <Text className="text-base font-bold" style={{ color: colors.text }}>
                 {graphMode === 'bodyLoad' ? 'Body Load' : 'Serum Concentration'}
               </Text>
               <Chip label="Estimated" tone="warning" />
             </View>
+            {/* Chart type: Line ↔ Daily Range */}
+            <View className="mb-2">
+              <Segmented
+                value={chartType}
+                options={[
+                  { value: 'line' as const, label: 'Line' },
+                  { value: 'dailyRange' as const, label: 'Daily Range' },
+                ]}
+                onChange={setChartType}
+              />
+            </View>
+            {/* Metric: Body Load ↔ Concentration */}
             <View className="mb-2">
               <Segmented
                 value={graphMode}
@@ -210,18 +306,28 @@ export default function DashboardScreen() {
 
             {chartSeries.length > 0 ? (
               <>
-                <LineChart
-                  series={chartSeries}
-                  height={260}
-                  xFormatter={xFormatter}
-                  yFormatter={y => (graphMode === 'bodyLoad' ? y.toFixed(y >= 10 ? 0 : 1) : y.toFixed(0))}
-                />
+                {chartType === 'line' ? (
+                  <LineChart
+                    series={chartSeries}
+                    height={260}
+                    xFormatter={xFormatter}
+                    yFormatter={y => (graphMode === 'bodyLoad' ? y.toFixed(y >= 10 ? 0 : 1) : y.toFixed(0))}
+                  />
+                ) : (
+                  <DailyRangeChart
+                    days={dailyRanges}
+                    seriesCount={chartSeries.length}
+                    height={260}
+                    xFormatter={ts => new Date(ts).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
+                    yFormatter={y => (graphMode === 'bodyLoad' ? y.toFixed(y >= 10 ? 0 : 1) : y.toFixed(0))}
+                  />
+                )}
                 {/* Legend */}
                 <View className="flex-row flex-wrap gap-x-4 gap-y-1 mt-2">
                   {currentLevels.map(c => (
                     <View key={c.userCompound.id} className="flex-row items-center gap-1.5">
                       <View className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: c.color }} />
-                      <Text className="font-mono text-[10px] text-muted">{c.name}</Text>
+                      <Text className="font-mono text-[10px]" style={{ color: colors.muted }}>{c.name}</Text>
                     </View>
                   ))}
                 </View>
@@ -229,8 +335,8 @@ export default function DashboardScreen() {
             ) : (
               <View className="items-center py-12">
                 <MaterialIcons name="science" size={56} color={colors.divider} />
-                <Text className="text-base text-muted mt-3">No data yet</Text>
-                <Text className="text-xs text-muted mt-1 text-center">
+                <Text className="text-base mt-3" style={{ color: colors.muted }}>No data yet</Text>
+                <Text className="text-xs mt-1 text-center" style={{ color: colors.muted }}>
                   Add peptides and log doses to see your concentration graph
                 </Text>
               </View>
@@ -240,14 +346,14 @@ export default function DashboardScreen() {
           {/* Next dose */}
           <Card className="p-4 mb-3">
             <View className="flex-row items-center justify-between mb-3">
-              <Text className="text-base font-bold text-ink">Next Dose</Text>
+              <Text className="text-base font-bold" style={{ color: colors.text }}>Next Dose</Text>
               <MaterialIcons name="calendar-month" size={20} color={colors.primary} />
             </View>
             {nextDose ? (
               <>
-                <Text className="text-xs font-bold text-teal-text mb-1">Upcoming</Text>
-                <Text className="text-[24px] font-extrabold text-ink leading-7">{relativeDayLabel(nextDose.scheduledAt)}</Text>
-                <Text className="text-[13px] text-muted mt-1 mb-2">
+                <Text className="text-xs font-bold mb-1" style={{ color: colors.tealText }}>Upcoming</Text>
+                <Text className="text-[24px] font-extrabold leading-7" style={{ color: colors.text }}>{relativeDayLabel(nextDose.scheduledAt)}</Text>
+                <Text className="text-[13px] mt-1 mb-2" style={{ color: colors.muted }}>
                   {new Date(nextDose.scheduledAt).toLocaleDateString(undefined, { weekday: 'long', month: 'short', day: 'numeric', year: 'numeric' })}
                 </Text>
                 <RailRow label="Compound" value={nextDoseCompound?.genericName ?? 'Unknown'} />
@@ -268,11 +374,11 @@ export default function DashboardScreen() {
             <Card className="p-4 mb-3">
               <View className="flex-row items-center justify-between mb-2">
                 <View className="flex-row items-center gap-2">
-                  <Text className="text-base font-bold text-ink">Active Peptides</Text>
+                  <Text className="text-base font-bold" style={{ color: colors.text }}>Active Peptides</Text>
                   <Chip label={String(activeCompounds.length)} tone="primary" />
                 </View>
                 <Pressable onPress={() => router.push('/my-peptides')}>
-                  <Text className="text-xs text-primary font-medium">Manage</Text>
+                  <Text className="text-xs font-medium" style={{ color: colors.primary }}>Manage</Text>
                 </Pressable>
               </View>
               <View className="gap-2">
@@ -290,16 +396,16 @@ export default function DashboardScreen() {
                   return (
                     <Pressable
                       key={uc.id}
-                      className="bg-surface border border-card-border rounded-md p-3"
-                      style={{ borderLeftWidth: 3, borderLeftColor: color }}
+                      className="rounded-md p-3"
+                      style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.cardBorder, borderLeftWidth: 3, borderLeftColor: color }}
                       onPress={() => router.push(`/compound/${uc.id}`)}
                     >
                       <View className="flex-row items-center gap-2">
                         <View className="w-2 h-2 rounded-full" style={{ backgroundColor: color }} />
-                        <Text className="font-extrabold text-ink flex-1" numberOfLines={1}>{compound.genericName}</Text>
+                        <Text className="font-extrabold flex-1" style={{ color: colors.text }} numberOfLines={1}>{compound.genericName}</Text>
                         <MaterialIcons name="arrow-forward" size={15} color={colors.muted} />
                       </View>
-                      <Text className="text-xs text-muted mt-0.5">
+                      <Text className="text-xs mt-0.5" style={{ color: colors.muted }}>
                         {formatDose(uc.doseAmountMcg)} · {formatFrequency(uc.doseFrequencyHours)}
                       </Text>
                       <View className="flex-row gap-4 mt-2">
@@ -329,11 +435,12 @@ export default function DashboardScreen() {
 
 function NewUserCard() {
   const router = useRouter();
+  const { colors } = useThemeMode();
   return (
-    <Card className="p-5 bg-primary-tint">
-      <Text className="font-mono text-[10px] uppercase tracking-widest text-teal-text mb-2">Welcome to PeptideIQ</Text>
-      <Text className="text-base font-bold text-ink mb-1">Let's get you set up.</Text>
-      <Text className="text-[13px] text-muted mb-4 leading-5">
+    <Card className="p-5" style={{ backgroundColor: colors.primaryTint }}>
+      <Text className="font-mono text-[10px] uppercase tracking-widest mb-2" style={{ color: colors.tealText }}>Welcome to PeptideIQ</Text>
+      <Text className="text-base font-bold mb-1" style={{ color: colors.text }}>Let's get you set up.</Text>
+      <Text className="text-[13px] mb-4 leading-5" style={{ color: colors.muted }}>
         Pick a peptide from the library, log your first dose, and set a goal — your dashboard will fill in as you go.
       </Text>
       <View className="gap-2">
@@ -351,17 +458,28 @@ function StatCard({ icon, label, value, detail }: {
   value: string;
   detail?: string;
 }) {
-  const { colors } = useThemeMode();
+  const { colors, resolvedMode } = useThemeMode();
+  const shadow =
+    resolvedMode === 'light'
+      ? { shadowColor: '#0F172A', shadowOpacity: 0.06, shadowRadius: 10, shadowOffset: { width: 0, height: 3 }, elevation: 2 }
+      : {};
   return (
-    <View className="basis-[47%] grow bg-surface border border-card-border rounded-lg px-3.5 py-3 flex-row items-center justify-between gap-2">
+    <View
+      className="basis-[47%] grow rounded-2xl px-3.5 py-3 flex-row items-center justify-between gap-2"
+      style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.cardBorder, ...shadow }}
+    >
       <View className="flex-1">
-        <Text className="font-mono text-[10px] uppercase tracking-wider text-muted font-bold">{label}</Text>
-        <Text className="font-mono font-bold text-base text-ink mt-1" numberOfLines={1}>{value}</Text>
-        {detail ? <Text className="text-xs text-muted font-bold mt-0.5">{detail}</Text> : null}
+        <Text className="font-mono text-[10px] uppercase tracking-wider font-bold" style={{ color: colors.muted }}>{label}</Text>
+        <Text className="font-mono font-bold text-base mt-1" style={{ color: colors.text }} numberOfLines={1}>{value}</Text>
+        {detail ? <Text className="text-xs font-bold mt-0.5" style={{ color: colors.muted }}>{detail}</Text> : null}
       </View>
-      <View className="w-10 h-10 rounded-full bg-primary-tint items-center justify-center">
-        <MaterialIcons name={icon} size={18} color={colors.tealText} />
-      </View>
+      <GradientView
+        colors={[colors.primary, colors.secondary]}
+        borderRadius={12}
+        className="w-10 h-10 rounded-xl items-center justify-center"
+      >
+        <MaterialIcons name={icon} size={18} color="#FFFFFF" />
+      </GradientView>
     </View>
   );
 }
@@ -371,6 +489,7 @@ function QuickCalculatorCard({ quickCompound, quickCalc }: {
   quickCalc: ReturnType<typeof calculateDose> | null;
 }) {
   const router = useRouter();
+  const { colors } = useThemeMode();
   const [mode, setMode] = useState<QuickCalcMode>('reconstitution');
   const [doseMg, setDoseMg] = useState('0.25');
   const [vialMg, setVialMg] = useState('5');
@@ -404,7 +523,7 @@ function QuickCalculatorCard({ quickCompound, quickCalc }: {
 
   return (
     <Card className="p-4">
-      <Text className="text-base font-bold text-ink mb-3">Quick Calculator</Text>
+      <Text className="text-base font-bold mb-3" style={{ color: colors.text }}>Quick Calculator</Text>
       <View className="mb-3">
         <Segmented
           value={mode}
@@ -433,7 +552,7 @@ function QuickCalculatorCard({ quickCompound, quickCalc }: {
           <Field label="Water volume (mL)">
             <Input value={waterMl} onChangeText={setWaterMl} keyboardType="decimal-pad" />
           </Field>
-          <View className="flex-row rounded-md overflow-hidden bg-primary-tint mt-1">
+          <View className="flex-row rounded-md overflow-hidden mt-1" style={{ backgroundColor: colors.primaryTint }}>
             {mode === 'dose' ? (
               <>
                 <CalcResult label="Dose" value={doseFromUnitsMg > 0 ? formatCompactNumber(doseFromUnitsMg) : '-'} unit="mg" />
@@ -463,7 +582,7 @@ function QuickCalculatorCard({ quickCompound, quickCalc }: {
           </Text>
         </>
       ) : (
-        <Text className="text-[13px] text-muted mb-2">
+        <Text className="text-[13px] mb-2" style={{ color: colors.muted }}>
           Add vial strength and water volume to enable quick calculations.
         </Text>
       )}
@@ -473,29 +592,32 @@ function QuickCalculatorCard({ quickCompound, quickCalc }: {
 }
 
 function CalcResult({ label, value, unit }: { label: string; value: string; unit: string }) {
+  const { colors } = useThemeMode();
   return (
     <View className="flex-1 items-center py-3 px-1">
-      <Text className="font-mono text-[8px] uppercase text-muted font-bold" numberOfLines={1}>{label}</Text>
-      <Text className="font-mono text-violet-text text-lg font-extrabold mt-1" numberOfLines={1}>{value}</Text>
-      <Text className="text-[11px] text-muted mt-0.5" numberOfLines={1}>{unit}</Text>
+      <Text className="font-mono text-[8px] uppercase font-bold" style={{ color: colors.muted }} numberOfLines={1}>{label}</Text>
+      <Text className="font-mono text-lg font-extrabold mt-1" style={{ color: colors.tealText }} numberOfLines={1}>{value}</Text>
+      <Text className="text-[11px] mt-0.5" style={{ color: colors.muted }} numberOfLines={1}>{unit}</Text>
     </View>
   );
 }
 
 function RailRow({ label, value }: { label: string; value: string }) {
+  const { colors } = useThemeMode();
   return (
-    <View className="flex-row justify-between gap-3 py-2.5 border-t border-divider">
-      <Text className="text-xs text-muted">{label}</Text>
-      <Text className="text-[13px] font-extrabold text-ink text-right flex-1" numberOfLines={1}>{value}</Text>
+    <View className="flex-row justify-between gap-3 py-2.5" style={{ borderTopWidth: 1, borderTopColor: colors.divider }}>
+      <Text className="text-xs" style={{ color: colors.muted }}>{label}</Text>
+      <Text className="text-[13px] font-extrabold text-right flex-1" style={{ color: colors.text }} numberOfLines={1}>{value}</Text>
     </View>
   );
 }
 
 function DataCell({ label, value }: { label: string; value: string }) {
+  const { colors } = useThemeMode();
   return (
     <View className="flex-1">
-      <Text className="text-[11px] text-muted">{label}</Text>
-      <Text className="text-[11px] font-bold text-ink mt-0.5" numberOfLines={1}>{value}</Text>
+      <Text className="text-[11px]" style={{ color: colors.muted }}>{label}</Text>
+      <Text className="text-[11px] font-bold mt-0.5" style={{ color: colors.text }} numberOfLines={1}>{value}</Text>
     </View>
   );
 }

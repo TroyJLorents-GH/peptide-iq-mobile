@@ -122,7 +122,7 @@ export default function ScheduleScreen() {
 
   return (
     <Screen>
-      <Text className="text-[13px] text-muted mb-4">
+      <Text className="text-[13px] mb-4" style={{ color: colors.muted }}>
         Your upcoming injections, organized by what needs attention next.
       </Text>
 
@@ -154,11 +154,11 @@ export default function ScheduleScreen() {
         </SectionLabel>
         {todayDoses.length === 0 ? (
           <View className="items-center py-6">
-            <View className="w-14 h-14 rounded-full border-2 border-primary bg-primary-tint items-center justify-center mb-3">
+            <View className="w-14 h-14 rounded-full border-2 items-center justify-center mb-3" style={{ borderColor: colors.primary, backgroundColor: colors.primaryTint }}>
               <MaterialIcons name="check-circle" size={26} color={colors.primary} />
             </View>
-            <Text className="text-sm font-bold text-ink">No doses scheduled today.</Text>
-            <Text className="text-[13px] text-muted mt-0.5">Enjoy the day off.</Text>
+            <Text className="text-sm font-bold" style={{ color: colors.text }}>No doses scheduled today.</Text>
+            <Text className="text-[13px] mt-0.5" style={{ color: colors.muted }}>Enjoy the day off.</Text>
           </View>
         ) : (
           todayDoses.map((dose, i) => (
@@ -179,7 +179,7 @@ export default function ScheduleScreen() {
       <Card className="p-4 mb-3">
         <View className="flex-row justify-between items-center mb-1">
           <SectionLabel>Upcoming</SectionLabel>
-          <Text className="text-xs text-muted font-bold">{weekDoses.length} this week</Text>
+          <Text className="text-xs font-bold" style={{ color: colors.muted }}>{weekDoses.length} this week</Text>
         </View>
         {displayUpcoming.length === 0 ? (
           <Banner tone="info">No upcoming doses scheduled.</Banner>
@@ -203,7 +203,7 @@ export default function ScheduleScreen() {
       <Card className="p-4 mb-3">
         <View className="flex-row justify-between items-center mb-2">
           <SectionLabel>This Week</SectionLabel>
-          <Text className="text-xs text-muted font-bold">{weekDoses.length} doses scheduled</Text>
+          <Text className="text-xs font-bold" style={{ color: colors.muted }}>{weekDoses.length} doses scheduled</Text>
         </View>
         <ScrollView horizontal showsHorizontalScrollIndicator={false}>
           {weekDays.map(day => (
@@ -268,6 +268,7 @@ function DoseRow({ dose, uc, resolveCompound, onMarkTaken, showDate }: {
   onMarkTaken: () => void;
   showDate?: boolean;
 }) {
+  const { colors } = useThemeMode();
   const compound = uc ? resolveCompound(uc.compoundId) : null;
   if (!compound || !uc) return null;
   const when = new Date(dose.scheduledAt);
@@ -275,18 +276,18 @@ function DoseRow({ dose, uc, resolveCompound, onMarkTaken, showDate }: {
     <View className="flex-row items-center gap-3 py-2.5">
       <View className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: uc.color }} />
       <View className="w-[74px]">
-        <Text className="font-mono text-xs font-bold text-ink">
+        <Text className="font-mono text-xs font-bold" style={{ color: colors.text }}>
           {when.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}
         </Text>
         {showDate ? (
-          <Text className="font-mono text-[10px] text-muted">
+          <Text className="font-mono text-[10px]" style={{ color: colors.muted }}>
             {when.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
           </Text>
         ) : null}
       </View>
       <View className="flex-1 min-w-0">
-        <Text className="text-[13px] font-bold text-ink" numberOfLines={1}>{compound.genericName}</Text>
-        <Text className="text-xs text-muted">{formatDose(dose.doseMcg)} — Dose #{dose.doseNumber}</Text>
+        <Text className="text-[13px] font-bold" style={{ color: colors.text }} numberOfLines={1}>{compound.genericName}</Text>
+        <Text className="text-xs" style={{ color: colors.muted }}>{formatDose(dose.doseMcg)} — Dose #{dose.doseNumber}</Text>
       </View>
       <Button title="Log Now" onPress={onMarkTaken} className="px-3 py-1.5" />
     </View>
@@ -298,12 +299,13 @@ function WeekDayCard({ day, userCompounds, resolveCompound }: {
   userCompounds: UserCompound[];
   resolveCompound: (id: string) => Compound | undefined;
 }) {
+  const { colors } = useThemeMode();
   return (
-    <View className="w-[110px] min-h-[120px] border border-outline rounded-md p-2.5 bg-surface mr-2">
-      <Text className="text-[10px] font-bold uppercase text-muted">
+    <View className="w-[110px] min-h-[120px] border rounded-md p-2.5 mr-2" style={{ borderColor: colors.outline, backgroundColor: colors.surface }}>
+      <Text className="text-[10px] font-bold uppercase" style={{ color: colors.muted }}>
         {day.date.toLocaleDateString(undefined, { weekday: 'short' })}
       </Text>
-      <Text className="font-mono text-[11px] font-bold text-ink mt-0.5">
+      <Text className="font-mono text-[11px] font-bold mt-0.5" style={{ color: colors.text }}>
         {day.date.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
       </Text>
       <View className="mt-2 gap-1.5">
@@ -316,17 +318,17 @@ function WeekDayCard({ day, userCompounds, resolveCompound }: {
               className="pl-1.5 border-l-[3px]"
               style={{ borderLeftColor: uc?.color ?? '#0EA5B7' }}
             >
-              <Text className="font-mono text-[10px] font-bold text-ink">
+              <Text className="font-mono text-[10px] font-bold" style={{ color: colors.text }}>
                 {new Date(dose.scheduledAt).toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' })}
               </Text>
-              <Text className="text-[11px] font-bold text-ink" numberOfLines={1}>
+              <Text className="text-[11px] font-bold" style={{ color: colors.text }} numberOfLines={1}>
                 {compound?.genericName ?? 'Dose'}
               </Text>
-              <Text className="text-[10px] text-muted">{formatDose(dose.doseMcg)}</Text>
+              <Text className="text-[10px]" style={{ color: colors.muted }}>{formatDose(dose.doseMcg)}</Text>
             </View>
           );
         })}
-        {day.doses.length === 0 ? <Text className="text-[11px] text-muted mt-1">No dose</Text> : null}
+        {day.doses.length === 0 ? <Text className="text-[11px] mt-1" style={{ color: colors.muted }}>No dose</Text> : null}
       </View>
     </View>
   );
@@ -341,19 +343,20 @@ function StatCard({ label, value, detail, icon, accent }: {
 }) {
   const { colors } = useThemeMode();
   return (
-    <Card className={`p-4 mb-2 ${accent ? 'border-t-[3px] border-t-primary' : ''}`}>
+    <Card className={`p-4 mb-2 ${accent ? 'border-t-[3px]' : ''}`} style={accent ? { borderTopColor: colors.primary } : undefined}>
       <View className="flex-row justify-between items-center gap-3">
         <View className="flex-1 min-w-0">
           <SectionLabel>{label}</SectionLabel>
           <Text
-            className={`font-mono text-[22px] font-bold ${accent ? 'text-primary' : 'text-ink'}`}
+            className="font-mono text-[22px] font-bold"
+            style={{ color: accent ? colors.primary : colors.text }}
             numberOfLines={1}
           >
             {value}
           </Text>
-          <Text className="text-xs text-muted mt-1" numberOfLines={1}>{detail}</Text>
+          <Text className="text-xs mt-1" style={{ color: colors.muted }} numberOfLines={1}>{detail}</Text>
         </View>
-        <View className="w-10 h-10 rounded-full bg-primary-tint items-center justify-center">
+        <View className="w-10 h-10 rounded-full items-center justify-center" style={{ backgroundColor: colors.primaryTint }}>
           <MaterialIcons name={icon} size={19} color={colors.tealText} />
         </View>
       </View>

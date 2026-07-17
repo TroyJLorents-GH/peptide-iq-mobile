@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { ScrollView, Text, TouchableOpacity, View } from '../../tw';
 import { Banner, Button, Card, Field, Input, Screen, Select, SectionLabel } from '../../components/ui';
 import SyringeVisual from '../../components/SyringeVisual';
+import { useThemeMode } from '../../context/ThemeModeContext';
 import { calculateDose } from '../../utils/calculator';
 import type { CalculatorResult } from '../../types';
 
@@ -46,6 +47,7 @@ function PresetOrCustom({ label, unit, options, presetValue, setPresetValue, cus
   useCustom: boolean;
   setUseCustom: (v: boolean) => void;
 }) {
+  const { colors } = useThemeMode();
   return (
     <View className="mb-1">
       {!useCustom ? (
@@ -54,7 +56,7 @@ function PresetOrCustom({ label, unit, options, presetValue, setPresetValue, cus
             <Select value={presetValue} options={options} onChange={setPresetValue} />
           </Field>
           <TouchableOpacity onPress={() => setUseCustom(true)} className="-mt-2 mb-2">
-            <Text className="text-[11px] text-primary">Enter custom value</Text>
+            <Text className="text-[11px]" style={{ color: colors.primary }}>Enter custom value</Text>
           </TouchableOpacity>
         </>
       ) : (
@@ -68,7 +70,7 @@ function PresetOrCustom({ label, unit, options, presetValue, setPresetValue, cus
             />
           </Field>
           <TouchableOpacity onPress={() => { setUseCustom(false); setCustom(''); }} className="-mt-2 mb-2">
-            <Text className="text-[11px] text-primary">Use presets</Text>
+            <Text className="text-[11px]" style={{ color: colors.primary }}>Use presets</Text>
           </TouchableOpacity>
         </>
       )}
@@ -77,6 +79,7 @@ function PresetOrCustom({ label, unit, options, presetValue, setPresetValue, cus
 }
 
 export default function CalculatorScreen() {
+  const { colors } = useThemeMode();
   const [desiredDoseMcg, setDesiredDoseMcg] = useState<number | null>(null);
   const [customDose, setCustomDose] = useState('');
   const [useCustomDose, setUseCustomDose] = useState(false);
@@ -109,7 +112,7 @@ export default function CalculatorScreen() {
   return (
     <Screen>
       <View className="flex-row items-center justify-between mb-1">
-        <Text className="text-sm text-muted flex-1">
+        <Text className="text-sm flex-1" style={{ color: colors.muted }}>
           Accurate dosing for reconstituted peptides on a U-100 insulin syringe.
         </Text>
         <Button title="Reset" variant="outlined" onPress={handleReset} className="py-1.5 px-3" />
@@ -119,8 +122,8 @@ export default function CalculatorScreen() {
       <SectionLabel>Common strengths</SectionLabel>
       <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-4" contentContainerClassName="gap-1.5">
         {COMMON_PRESETS.map(p => (
-          <View key={p.name} className="rounded-full border border-outline px-2.5 py-1">
-            <Text className="font-mono text-[10px] uppercase tracking-wider text-muted">
+          <View key={p.name} className="rounded-full border px-2.5 py-1" style={{ borderColor: colors.outline }}>
+            <Text className="font-mono text-[10px] uppercase tracking-wider" style={{ color: colors.muted }}>
               {p.name}: {p.strength}
             </Text>
           </View>
@@ -128,7 +131,7 @@ export default function CalculatorScreen() {
       </ScrollView>
 
       <Card className="p-4 mb-4">
-        <Text className="text-[13px] font-semibold text-ink mb-2">1. Set Your Dose</Text>
+        <Text className="text-[13px] font-semibold mb-2" style={{ color: colors.text }}>1. Set Your Dose</Text>
         <PresetOrCustom
           label="Desired Dose"
           unit="mg"
@@ -141,7 +144,7 @@ export default function CalculatorScreen() {
           setUseCustom={setUseCustomDose}
         />
 
-        <Text className="text-[13px] font-semibold text-ink mb-2 mt-2">2. Peptide Strength</Text>
+        <Text className="text-[13px] font-semibold mb-2 mt-2" style={{ color: colors.text }}>2. Peptide Strength</Text>
         <PresetOrCustom
           label="Vial Strength"
           unit="mg"
@@ -154,7 +157,7 @@ export default function CalculatorScreen() {
           setUseCustom={setUseCustomStrength}
         />
 
-        <Text className="text-[13px] font-semibold text-ink mb-2 mt-2">3. Bacteriostatic Water</Text>
+        <Text className="text-[13px] font-semibold mb-2 mt-2" style={{ color: colors.text }}>3. Bacteriostatic Water</Text>
         <PresetOrCustom
           label="Water Volume"
           unit="mL"
@@ -178,7 +181,7 @@ export default function CalculatorScreen() {
 
       {/* Syringe visual + results */}
       <Card className="p-4 mb-4">
-        <Text className="font-mono text-[11px] uppercase tracking-widest text-muted text-center mb-3">
+        <Text className="font-mono text-[11px] uppercase tracking-widest text-center mb-3" style={{ color: colors.muted }}>
           {result ? 'Reconstitution Result' : 'Enter values to see dosage'}
         </Text>
         <SyringeVisual result={result} />
@@ -199,8 +202,8 @@ export default function CalculatorScreen() {
       {/* Formula explanation */}
       {result ? (
         <Card className="p-4">
-          <Text className="text-[13px] font-semibold text-ink mb-1.5">How this was calculated</Text>
-          <Text className="text-[13px] text-muted leading-6">
+          <Text className="text-[13px] font-semibold mb-1.5" style={{ color: colors.text }}>How this was calculated</Text>
+          <Text className="text-[13px] leading-6" style={{ color: colors.muted }}>
             {result.vialStrengthMg} mg = {result.vialStrengthMg * 1000} mcg of peptide dissolved in{' '}
             {result.waterVolumeMl} mL of water = {result.concentrationMcgPerMl} mcg/mL concentration.{'\n'}
             To get {result.desiredDoseMcg >= 1000 ? `${result.desiredDoseMcg / 1000} mg` : `${result.desiredDoseMcg} mcg`}:{' '}
@@ -219,18 +222,22 @@ function ResultStat({ label, value, unit, highlight }: {
   unit: string;
   highlight?: boolean;
 }) {
+  const { colors } = useThemeMode();
   return (
     <View
-      className={`basis-[47%] grow rounded-md border px-3.5 py-3.5 min-h-[90px] justify-between ${
-        highlight ? 'bg-primary-tint border-t-2 border-t-primary border-outline' : 'bg-surface border-card-border'
-      }`}
+      className="basis-[47%] grow rounded-md border px-3.5 py-3.5 min-h-[90px] justify-between"
+      style={
+        highlight
+          ? { backgroundColor: colors.primaryTint, borderColor: colors.outline, borderTopWidth: 2, borderTopColor: colors.primary }
+          : { backgroundColor: colors.surface, borderColor: colors.cardBorder }
+      }
     >
-      <Text className="font-mono text-[9px] uppercase tracking-widest text-muted">{label}</Text>
+      <Text className="font-mono text-[9px] uppercase tracking-widest" style={{ color: colors.muted }}>{label}</Text>
       <View className="flex-row items-baseline gap-1 mt-1 flex-wrap">
-        <Text className={`font-mono font-semibold text-[26px] leading-7 ${highlight ? 'text-teal-text' : 'text-ink'}`}>
+        <Text className="font-mono font-semibold text-[26px] leading-7" style={{ color: highlight ? colors.tealText : colors.text }}>
           {value}
         </Text>
-        <Text className="font-mono text-[10px] uppercase tracking-wide text-muted">{unit}</Text>
+        <Text className="font-mono text-[10px] uppercase tracking-wide" style={{ color: colors.muted }}>{unit}</Text>
       </View>
     </View>
   );

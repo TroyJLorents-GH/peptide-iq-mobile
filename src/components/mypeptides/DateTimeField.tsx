@@ -18,7 +18,7 @@ interface DateTimeFieldProps {
  */
 export default function DateTimeField({ label, value, onChange, helperText }: DateTimeFieldProps) {
   const [stage, setStage] = useState<null | 'date' | 'time'>(null);
-  const { resolvedMode } = useThemeMode();
+  const { resolvedMode, colors } = useThemeMode();
 
   const handleAndroidChange = (e: DateTimePickerEvent, d?: Date) => {
     if (e.type === 'dismissed' || !d) {
@@ -39,7 +39,7 @@ export default function DateTimeField({ label, value, onChange, helperText }: Da
   return (
     <Field label={label}>
       {Platform.OS === 'ios' ? (
-        <View className="border border-outline rounded-md bg-surface px-1 py-1 items-start">
+        <View className="border rounded-md px-1 py-1 items-start" style={{ borderColor: colors.outline, backgroundColor: colors.surface }}>
           <DateTimePicker
             value={value}
             mode="datetime"
@@ -51,10 +51,11 @@ export default function DateTimeField({ label, value, onChange, helperText }: Da
       ) : (
         <>
           <Pressable
-            className="border border-outline rounded-md px-3 py-2.5 bg-surface"
+            className="border rounded-md px-3 py-2.5"
+            style={{ borderColor: colors.outline, backgroundColor: colors.surface }}
             onPress={() => setStage('date')}
           >
-            <Text className="text-sm text-ink">
+            <Text className="text-sm" style={{ color: colors.text }}>
               {value.toLocaleString(undefined, {
                 year: 'numeric', month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit',
               })}
@@ -69,7 +70,7 @@ export default function DateTimeField({ label, value, onChange, helperText }: Da
           ) : null}
         </>
       )}
-      {helperText ? <Text className="text-[11px] text-muted mt-1">{helperText}</Text> : null}
+      {helperText ? <Text className="text-[11px] mt-1" style={{ color: colors.muted }}>{helperText}</Text> : null}
     </Field>
   );
 }

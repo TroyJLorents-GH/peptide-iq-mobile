@@ -1,6 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert as RNAlert } from 'react-native';
-import Svg, { Circle } from 'react-native-svg';
+import Svg, { Circle, Defs, LinearGradient as SvgLinearGradient, Stop } from 'react-native-svg';
+import Animated, { Easing, useAnimatedProps, useSharedValue, withTiming } from 'react-native-reanimated';
+import { AnimatedCount } from '../components/Anim';
+
+const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 import { MaterialIcons } from '@expo/vector-icons';
 import { Pressable, Text, TouchableOpacity, View } from '../tw';
 import { Banner, Button, Card, Divider, Field, FormModal, Input, Screen, SectionLabel } from '../components/ui';
@@ -209,7 +213,7 @@ export default function ProgressScreen() {
 
   return (
     <Screen>
-      <Text className="text-[13px] text-muted mb-3">
+      <Text className="text-[13px] mb-3" style={{ color: colors.muted }}>
         Track weight, body composition, and goals over time.
       </Text>
 
@@ -258,7 +262,7 @@ export default function ProgressScreen() {
         ) : (
           <View className="items-center py-10">
             <MaterialIcons name="monitor-weight" size={44} color={colors.divider} />
-            <Text className="text-[13px] text-muted mt-2">Log your first weight to see your trend</Text>
+            <Text className="text-[13px] mt-2" style={{ color: colors.muted }}>Log your first weight to see your trend</Text>
           </View>
         )}
         <View className="flex-row gap-1.5 mt-2 flex-wrap">
@@ -267,10 +271,14 @@ export default function ProgressScreen() {
             return (
               <Pressable
                 key={range.value}
-                className={`rounded-md px-2.5 py-1.5 ${active ? 'bg-primary-solid' : ''}`}
+                className="rounded-md px-2.5 py-1.5"
+                style={{ backgroundColor: active ? colors.primarySolid : 'transparent' }}
                 onPress={() => setTrendRange(range.value)}
               >
-                <Text className={`font-mono text-[11px] ${active ? 'text-on-primary font-semibold' : 'text-muted'}`}>
+                <Text
+                  className={`font-mono text-[11px] ${active ? 'font-semibold' : ''}`}
+                  style={{ color: active ? colors.onPrimary : colors.muted }}
+                >
                   {range.label}
                 </Text>
               </Pressable>
@@ -287,12 +295,12 @@ export default function ProgressScreen() {
         {startWeight && goalWeight && currentWeight ? (
           <>
             <GoalRing value={progressPct} />
-            <Text className="text-xs text-muted mt-3">
-              Goal: <Text className="text-xs text-ink font-bold">{goalWeight.toFixed(1)} lbs</Text>
-              {'   '}Start: <Text className="text-xs text-ink font-bold">{startWeight.toFixed(1)} lbs</Text>
+            <Text className="text-xs mt-3" style={{ color: colors.muted }}>
+              Goal: <Text className="text-xs font-bold" style={{ color: colors.text }}>{goalWeight.toFixed(1)} lbs</Text>
+              {'   '}Start: <Text className="text-xs font-bold" style={{ color: colors.text }}>{startWeight.toFixed(1)} lbs</Text>
             </Text>
             {goal.target_date ? (
-              <Text className="text-[11px] text-muted mt-1">
+              <Text className="text-[11px] mt-1" style={{ color: colors.muted }}>
                 Target: {new Date(goal.target_date).toLocaleDateString()}
               </Text>
             ) : null}
@@ -328,7 +336,7 @@ export default function ProgressScreen() {
       <Card className="p-4">
         <SectionLabel>Recent Entries · {logs.length}</SectionLabel>
         {loading ? (
-          <Text className="text-[13px] text-muted">Loading…</Text>
+          <Text className="text-[13px]" style={{ color: colors.muted }}>Loading…</Text>
         ) : sortedLogs.length === 0 ? (
           <Banner tone="info">No entries yet. Tap "Log Weight" to add your first.</Banner>
         ) : (
@@ -336,22 +344,22 @@ export default function ProgressScreen() {
             {sortedLogs.slice(0, 8).map(log => {
               const lean = log.body_fat_pct !== null ? log.weight_lbs * (1 - log.body_fat_pct / 100) : null;
               return (
-                <View key={log.id} className="flex-row items-center gap-2 border border-divider rounded-md px-3 py-2">
+                <View key={log.id} className="flex-row items-center gap-2 rounded-md px-3 py-2" style={{ borderWidth: 1, borderColor: colors.divider }}>
                   <View className="flex-1">
-                    <Text className="text-xs text-muted font-bold">
+                    <Text className="text-xs font-bold" style={{ color: colors.muted }}>
                       {new Date(log.recorded_at).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
                     </Text>
                     <View className="flex-row gap-3 mt-0.5">
-                      <Text className="font-mono text-xs font-bold text-ink">{log.weight_lbs.toFixed(1)} lbs</Text>
+                      <Text className="font-mono text-xs font-bold" style={{ color: colors.text }}>{log.weight_lbs.toFixed(1)} lbs</Text>
                       {log.body_fat_pct !== null ? (
-                        <Text className="font-mono text-xs text-muted">{log.body_fat_pct}% BF</Text>
+                        <Text className="font-mono text-xs" style={{ color: colors.muted }}>{log.body_fat_pct}% BF</Text>
                       ) : null}
                       {lean !== null ? (
-                        <Text className="font-mono text-xs text-muted">{lean.toFixed(1)} lean</Text>
+                        <Text className="font-mono text-xs" style={{ color: colors.muted }}>{lean.toFixed(1)} lean</Text>
                       ) : null}
                     </View>
                     {log.notes ? (
-                      <Text className="text-[11px] text-muted mt-0.5" numberOfLines={1}>{log.notes}</Text>
+                      <Text className="text-[11px] mt-0.5" style={{ color: colors.muted }} numberOfLines={1}>{log.notes}</Text>
                     ) : null}
                   </View>
                   <TouchableOpacity onPress={() => handleEdit(log)} hitSlop={6}>
@@ -435,29 +443,33 @@ function SummaryCard({ label, value, unit, detail, accent, trend }: {
 }) {
   const { colors } = useThemeMode();
   return (
-    <Card className={`p-3 w-[48.5%] ${accent ? 'border-t-2 border-t-primary' : ''}`}>
+    <Card
+      className="p-3 w-[48.5%]"
+      style={accent ? { borderTopWidth: 2, borderTopColor: colors.primary } : undefined}
+    >
       <View className="flex-row items-center justify-between mb-1.5">
-        <Text className="font-mono text-[9px] uppercase tracking-widest text-muted">{label}</Text>
+        <Text className="font-mono text-[9px] uppercase tracking-widest" style={{ color: colors.muted }}>{label}</Text>
         {trend === 'down' ? <MaterialIcons name="trending-down" size={14} color={colors.success} /> : null}
         {trend === 'up' ? <MaterialIcons name="trending-up" size={14} color={colors.warning} /> : null}
       </View>
-      <Text className={`font-mono text-2xl font-bold ${accent ? 'text-primary' : 'text-ink'}`}>
-        {value} <Text className="font-mono text-xs text-muted">{unit}</Text>
+      <Text className="font-mono text-2xl font-bold" style={{ color: accent ? colors.primary : colors.text }}>
+        {value} <Text className="font-mono text-xs" style={{ color: colors.muted }}>{unit}</Text>
       </Text>
-      <Text className="text-[11px] text-muted mt-1">{detail}</Text>
+      <Text className="text-[11px] mt-1" style={{ color: colors.muted }}>{detail}</Text>
     </Card>
   );
 }
 
 function MetricRow({ label, value, delta, unit }: { label: string; value: string; delta: number | null; unit?: string }) {
+  const { colors } = useThemeMode();
   const isGood = delta !== null && delta < 0;
   return (
     <View className="flex-row items-center justify-between py-3">
       <View>
-        <Text className="text-[11px] text-muted font-bold">{label}</Text>
-        <Text className="font-mono text-base font-bold text-ink mt-0.5">{value}</Text>
+        <Text className="text-[11px] font-bold" style={{ color: colors.muted }}>{label}</Text>
+        <Text className="font-mono text-base font-bold mt-0.5" style={{ color: colors.text }}>{value}</Text>
       </View>
-      <Text className={`text-[11px] font-bold ${delta === null ? 'text-muted' : isGood ? 'text-ok' : 'text-primary'}`}>
+      <Text className="text-[11px] font-bold" style={{ color: delta === null ? colors.muted : isGood ? colors.success : colors.primary }}>
         {delta === null ? 'vs start' : `${delta >= 0 ? '+' : ''}${delta.toFixed(1)}${unit ?? ''} vs start`}
       </Text>
     </View>
@@ -467,28 +479,44 @@ function MetricRow({ label, value, delta, unit }: { label: string; value: string
 function GoalRing({ value }: { value: number }) {
   const { colors } = useThemeMode();
   const pct = Math.max(0, Math.min(100, value));
-  const radius = 42;
+  const size = 150;
+  const c = size / 2;
+  const radius = 60;
   const circumference = 2 * Math.PI * radius;
-  const dash = (pct / 100) * circumference;
+  const target = (pct / 100) * circumference;
+
+  const offset = useSharedValue(circumference);
+  useEffect(() => {
+    offset.value = withTiming(circumference - target, { duration: 1100, easing: Easing.out(Easing.cubic) });
+  }, [target, circumference]);
+  const animatedProps = useAnimatedProps(() => ({ strokeDashoffset: offset.value }));
+
   return (
-    <View className="w-[112px] h-[112px] items-center justify-center">
-      <Svg viewBox="0 0 112 112" width={112} height={112}>
-        <Circle cx="56" cy="56" r={radius} fill="none" stroke="rgba(14, 165, 183, 0.12)" strokeWidth="12" />
-        <Circle
-          cx="56"
-          cy="56"
+    <View style={{ width: size, height: size }} className="items-center justify-center">
+      <Svg width={size} height={size}>
+        <Defs>
+          <SvgLinearGradient id="ringGrad" x1="0" y1="0" x2="1" y2="1">
+            <Stop offset="0" stopColor={colors.primary} />
+            <Stop offset="1" stopColor={colors.secondary} />
+          </SvgLinearGradient>
+        </Defs>
+        <Circle cx={c} cy={c} r={radius} fill="none" stroke={colors.primaryTint} strokeWidth="14" />
+        <AnimatedCircle
+          cx={c}
+          cy={c}
           r={radius}
           fill="none"
-          stroke={colors.primary}
-          strokeWidth="12"
+          stroke="url(#ringGrad)"
+          strokeWidth="14"
           strokeLinecap="round"
-          strokeDasharray={`${dash} ${circumference - dash}`}
-          transform="rotate(-90 56 56)"
+          strokeDasharray={circumference}
+          animatedProps={animatedProps}
+          transform={`rotate(-90 ${c} ${c})`}
         />
       </Svg>
       <View className="absolute items-center">
-        <Text className="font-mono text-[22px] font-bold text-primary">{pct.toFixed(0)}%</Text>
-        <Text className="text-[11px] text-muted">Complete</Text>
+        <AnimatedCount value={pct} decimals={0} suffix="%" className="font-mono text-[30px] font-extrabold" style={{ color: colors.text }} />
+        <Text className="text-[11px]" style={{ color: colors.muted }}>Complete</Text>
       </View>
     </View>
   );

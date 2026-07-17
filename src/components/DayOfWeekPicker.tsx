@@ -1,4 +1,5 @@
 import { Pressable, Text, View } from '../tw';
+import { useThemeMode } from '../context/ThemeModeContext';
 
 interface DayOfWeekPickerProps {
   value: number[]; // 0=Sun..6=Sat
@@ -18,6 +19,7 @@ const DAYS = [
 ];
 
 export default function DayOfWeekPicker({ value, onChange, label = 'Days of Week', helperText }: DayOfWeekPickerProps) {
+  const { colors } = useThemeMode();
   const toggleDay = (day: number) => {
     if (value.includes(day)) {
       onChange(value.filter(d => d !== day));
@@ -28,26 +30,28 @@ export default function DayOfWeekPicker({ value, onChange, label = 'Days of Week
 
   return (
     <View className="mb-3">
-      <Text className="font-mono text-[10px] uppercase tracking-widest text-muted mb-2">{label}</Text>
+      <Text className="font-mono text-[10px] uppercase tracking-widest mb-2" style={{ color: colors.muted }}>{label}</Text>
       <View className="flex-row gap-2 flex-wrap">
         {DAYS.map(d => {
           const selected = value.includes(d.num);
           return (
             <Pressable
               key={d.num}
-              className={`w-9 h-9 rounded-full items-center justify-center border ${
-                selected ? 'bg-primary-solid border-transparent' : 'bg-transparent border-outline'
-              }`}
+              className="w-9 h-9 rounded-full items-center justify-center border"
+              style={{
+                backgroundColor: selected ? colors.primarySolid : 'transparent',
+                borderColor: selected ? 'transparent' : colors.outline,
+              }}
               onPress={() => toggleDay(d.num)}
             >
-              <Text className={`font-mono text-[13px] font-semibold ${selected ? 'text-on-primary' : 'text-muted'}`}>
+              <Text className="font-mono text-[13px] font-semibold" style={{ color: selected ? colors.onPrimary : colors.muted }}>
                 {d.letter}
               </Text>
             </Pressable>
           );
         })}
       </View>
-      <Text className="font-mono text-[9px] text-muted mt-2">
+      <Text className="font-mono text-[9px] mt-2" style={{ color: colors.muted }}>
         {value.length === 0
           ? helperText || 'No days selected — uses pure frequency interval'
           : `${value.length} day${value.length === 1 ? '' : 's'}/week selected`}

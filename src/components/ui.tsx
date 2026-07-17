@@ -1,8 +1,21 @@
 import { type ReactNode, useState } from 'react';
 import { Modal, type TextInputProps, type ViewProps } from 'react-native';
 import { MaterialIcons } from '@expo/vector-icons';
+import { isLiquidGlassAvailable } from 'expo-glass-effect';
 import { Pressable, ScrollView, Text, TextInput, TouchableOpacity, View } from '../tw';
 import { useThemeMode } from '../context/ThemeModeContext';
+
+// A translucent (absolute) glass tab bar needs scroll content to clear it.
+const TAB_INSET = isLiquidGlassAvailable() ? 'pb-28' : 'pb-10';
+
+/*
+ * Color rendering note: on native (nativewind 5 preview + inlineVariables:false),
+ * Tailwind color utilities that resolve through CSS variables — bg-*, border-*,
+ * and tint classes — silently fail to apply, especially inside <Modal>s. Layout
+ * and sizing utilities work fine. So every primitive here keeps layout in
+ * className and applies colors via inline styles from the palette. See
+ * ColorPicker for the same pattern.
+ */
 
 // ---------- Layout ----------
 
@@ -11,13 +24,15 @@ export function Screen({ children, scroll = true, padded = true }: {
   scroll?: boolean;
   padded?: boolean;
 }) {
+  const { colors } = useThemeMode();
   if (!scroll) {
-    return <View className={`flex-1 bg-bg ${padded ? 'p-4' : ''}`}>{children}</View>;
+    return <View className={`flex-1 ${padded ? 'p-4' : ''}`} style={{ backgroundColor: colors.bg }}>{children}</View>;
   }
   return (
     <ScrollView
-      className="flex-1 bg-bg"
-      contentContainerClassName={padded ? 'p-4 pb-10' : 'pb-10'}
+      className="flex-1"
+      style={{ backgroundColor: colors.bg }}
+      contentContainerClassName={padded ? `p-4 ${TAB_INSET}` : TAB_INSET}
       keyboardShouldPersistTaps="handled"
     >
       {children}
@@ -25,22 +40,34 @@ export function Screen({ children, scroll = true, padded = true }: {
   );
 }
 
-export function Card({ children, className = '', ...rest }: ViewProps & { className?: string; children: ReactNode }) {
+export function Card({ children, className = '', style, ...rest }: ViewProps & { className?: string; children: ReactNode }) {
+  const { colors, resolvedMode } = useThemeMode();
+  // Soft elevation. Shadows read on light bg; on dark we lean on the border.
+  const shadow =
+    resolvedMode === 'light'
+      ? { shadowColor: '#0F172A', shadowOpacity: 0.06, shadowRadius: 12, shadowOffset: { width: 0, height: 4 }, elevation: 2 }
+      : null;
   return (
-    <View className={`bg-surface border border-card-border rounded-lg ${className}`} {...rest}>
+    <View
+      className={`border rounded-lg ${className}`}
+      style={[{ backgroundColor: colors.surface, borderColor: colors.cardBorder }, shadow, style]}
+      {...rest}
+    >
       {children}
     </View>
   );
 }
 
 export function Divider({ className = '' }: { className?: string }) {
-  return <View className={`h-px bg-divider ${className}`} />;
+  const { colors } = useThemeMode();
+  return <View className={`h-px ${className}`} style={{ backgroundColor: colors.divider }} />;
 }
 
 export function SectionLabel({ children }: { children: ReactNode }) {
   // Mirrors the web app's mono uppercase overline style
+  const { colors } = useThemeMode();
   return (
-    <Text className="font-mono text-[10px] uppercase tracking-widest text-muted mb-1.5">
+    <Text className="font-mono text-[10px] uppercase tracking-widest mb-1.5" style={{ color: colors.muted }}>
       {children}
     </Text>
   );
@@ -57,30 +84,34 @@ export function Button({ title, onPress, variant = 'contained', color = 'primary
   className?: string;
   icon?: ReactNode;
 }) {
+  const { colors } = useThemeMode();
   const base = 'flex-row items-center justify-center gap-1.5 rounded-md px-4 py-2.5';
-  const styles =
+
+  const containerStyle =
     variant === 'contained'
-      ? color === 'danger'
-        ? 'bg-danger'
-        : 'bg-primary-solid'
+      ? { backgroundColor: color === 'danger' ? colors.error : colors.primarySolid }
       : variant === 'outlined'
-        ? 'border border-outline bg-transparent'
-        : 'bg-transparent';
-  const textStyles =
+        ? { backgroundColor: 'transparent', borderWidth: 1, borderColor: colors.outline }
+        : { backgroundColor: 'transparent' };
+
+  const textColor =
     variant === 'contained'
-      ? color === 'danger' ? 'text-white font-semibold' : 'text-on-primary font-semibold'
+      ? colors.onPrimary
       : color === 'danger'
-        ? 'text-danger font-medium'
-        : 'text-primary font-medium';
+        ? colors.error
+        : colors.primary;
+  const textWeight = variant === 'contained' ? 'font-semibold' : 'font-medium';
+
   return (
     <TouchableOpacity
-      className={`${base} ${styles} ${disabled ? 'opacity-40' : ''} ${className}`}
+      className={`${base} ${className}`}
+      style={[containerStyle, disabled ? { opacity: 0.4 } : null]}
       onPress={onPress}
       disabled={disabled}
       activeOpacity={0.7}
     >
       {icon}
-      <Text className={`text-sm ${textStyles}`}>{title}</Text>
+      <Text className={`text-sm ${textWeight}`} style={{ color: textColor }}>{title}</Text>
     </TouchableOpacity>
   );
 }
@@ -91,18 +122,19 @@ export function Chip({ label, tone = 'default' }: {
   label: string;
   tone?: 'default' | 'primary' | 'success' | 'warning' | 'danger' | 'violet';
 }) {
-  const tones: Record<string, { box: string; text: string }> = {
-    default: { box: 'bg-transparent border-outline', text: 'text-muted' },
-    primary: { box: 'bg-primary-tint border-transparent', text: 'text-teal-text' },
-    success: { box: 'bg-ok-tint border-transparent', text: 'text-ok' },
-    warning: { box: 'bg-warn-tint border-transparent', text: 'text-warn' },
-    danger: { box: 'bg-danger-tint border-transparent', text: 'text-danger' },
-    violet: { box: 'bg-primary-tint border-transparent', text: 'text-violet-text' },
+  const { colors } = useThemeMode();
+  const tones: Record<string, { box: string; border: string; text: string }> = {
+    default: { box: 'transparent', border: colors.outline, text: colors.muted },
+    primary: { box: colors.primaryTint, border: 'transparent', text: colors.tealText },
+    success: { box: colors.successTint, border: 'transparent', text: colors.success },
+    warning: { box: colors.warningTint, border: 'transparent', text: colors.warning },
+    danger: { box: colors.errorTint, border: 'transparent', text: colors.error },
+    violet: { box: colors.primaryTint, border: 'transparent', text: colors.violetText },
   };
   const t = tones[tone] ?? tones.default;
   return (
-    <View className={`self-start rounded-full border px-2 py-0.5 ${t.box}`}>
-      <Text className={`font-mono text-[10px] uppercase tracking-wider font-medium ${t.text}`}>
+    <View className="self-start rounded-full border px-2 py-0.5" style={{ backgroundColor: t.box, borderColor: t.border }}>
+      <Text className="font-mono text-[10px] uppercase tracking-wider font-medium" style={{ color: t.text }}>
         {label}
       </Text>
     </View>
@@ -112,9 +144,10 @@ export function Chip({ label, tone = 'default' }: {
 // ---------- Inputs ----------
 
 export function Field({ label, children, className = '' }: { label: string; children: ReactNode; className?: string }) {
+  const { colors } = useThemeMode();
   return (
     <View className={`mb-3 ${className}`}>
-      <Text className="text-xs text-muted mb-1">{label}</Text>
+      <Text className="text-xs mb-1" style={{ color: colors.muted }}>{label}</Text>
       {children}
     </View>
   );
@@ -122,11 +155,13 @@ export function Field({ label, children, className = '' }: { label: string; chil
 
 export function Input(props: TextInputProps & { className?: string }) {
   const { colors } = useThemeMode();
+  const { style, className, ...rest } = props;
   return (
     <TextInput
       placeholderTextColor={colors.muted}
-      {...props}
-      className={`border border-outline rounded-md px-3 py-2.5 text-sm text-ink bg-surface ${props.className ?? ''}`}
+      {...rest}
+      className={`border rounded-md px-3 py-2.5 text-sm ${className ?? ''}`}
+      style={[{ borderColor: colors.outline, backgroundColor: colors.surface, color: colors.text }, style]}
     />
   );
 }
@@ -145,10 +180,11 @@ export function Select<T extends string | number>({ label, value, options, onCha
 
   const field = (
     <Pressable
-      className="border border-outline rounded-md px-3 py-2.5 flex-row items-center justify-between bg-surface"
+      className="border rounded-md px-3 py-2.5 flex-row items-center justify-between"
+      style={{ borderColor: colors.outline, backgroundColor: colors.surface }}
       onPress={() => setOpen(true)}
     >
-      <Text className={`text-sm ${selected ? 'text-ink' : 'text-muted'}`} numberOfLines={1}>
+      <Text className="text-sm" style={{ color: selected ? colors.text : colors.muted }} numberOfLines={1}>
         {selected ? selected.label : placeholder}
       </Text>
       <MaterialIcons name="arrow-drop-down" size={20} color={colors.muted} />
@@ -159,19 +195,32 @@ export function Select<T extends string | number>({ label, value, options, onCha
     <>
       {label ? <Field label={label}>{field}</Field> : field}
       <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
-        <Pressable className="flex-1 bg-black/50 justify-center px-6" onPress={() => setOpen(false)}>
-          <View className="bg-surface rounded-lg border border-card-border max-h-[70%] overflow-hidden">
+        <Pressable
+          className="flex-1 justify-center px-6"
+          style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}
+          onPress={() => setOpen(false)}
+        >
+          <View
+            className="rounded-lg border max-h-[70%] overflow-hidden"
+            style={{ backgroundColor: colors.surface, borderColor: colors.cardBorder }}
+          >
             {label ? (
-              <Text className="px-4 pt-3 pb-2 text-xs text-muted font-medium uppercase tracking-wider">{label}</Text>
+              <Text className="px-4 pt-3 pb-2 text-xs font-medium uppercase tracking-wider" style={{ color: colors.muted }}>
+                {label}
+              </Text>
             ) : null}
             <ScrollView>
               {options.map(o => (
                 <Pressable
                   key={String(o.value)}
-                  className={`px-4 py-3 ${o.value === value ? 'bg-primary-tint' : ''}`}
+                  className="px-4 py-3"
+                  style={o.value === value ? { backgroundColor: colors.primaryTint } : undefined}
                   onPress={() => { onChange(o.value); setOpen(false); }}
                 >
-                  <Text className={`text-sm ${o.value === value ? 'text-teal-text font-medium' : 'text-ink'}`}>
+                  <Text
+                    className={`text-sm ${o.value === value ? 'font-medium' : ''}`}
+                    style={{ color: o.value === value ? colors.tealText : colors.text }}
+                  >
                     {o.label}
                   </Text>
                 </Pressable>
@@ -187,19 +236,18 @@ export function Select<T extends string | number>({ label, value, options, onCha
 // ---------- Alerts (inline banners) ----------
 
 export function Banner({ children, tone = 'info' }: { children: ReactNode; tone?: 'info' | 'success' | 'warning' | 'error' }) {
-  const tones = {
-    info: { box: 'bg-primary-tint', text: 'text-teal-text', icon: 'info-outline' as const },
-    success: { box: 'bg-ok-tint', text: 'text-ok', icon: 'check-circle-outline' as const },
-    warning: { box: 'bg-warn-tint', text: 'text-warn', icon: 'warning-amber' as const },
-    error: { box: 'bg-danger-tint', text: 'text-danger', icon: 'error-outline' as const },
-  };
   const { colors } = useThemeMode();
-  const iconColor = { info: colors.info, success: colors.success, warning: colors.warning, error: colors.error }[tone];
+  const tones = {
+    info: { box: colors.primaryTint, text: colors.tealText, icon: 'info-outline' as const, iconColor: colors.info },
+    success: { box: colors.successTint, text: colors.success, icon: 'check-circle-outline' as const, iconColor: colors.success },
+    warning: { box: colors.warningTint, text: colors.warning, icon: 'warning-amber' as const, iconColor: colors.warning },
+    error: { box: colors.errorTint, text: colors.error, icon: 'error-outline' as const, iconColor: colors.error },
+  };
   const t = tones[tone];
   return (
-    <View className={`flex-row items-start gap-2 rounded-md px-3 py-2.5 ${t.box}`}>
-      <MaterialIcons name={t.icon} size={18} color={iconColor} style={{ marginTop: 1 }} />
-      <Text className={`flex-1 text-[13px] leading-5 ${t.text}`}>{children}</Text>
+    <View className="flex-row items-start gap-2 rounded-md px-3 py-2.5" style={{ backgroundColor: t.box }}>
+      <MaterialIcons name={t.icon} size={18} color={t.iconColor} style={{ marginTop: 1 }} />
+      <Text className="flex-1 text-[13px] leading-5" style={{ color: t.text }}>{children}</Text>
     </View>
   );
 }
@@ -213,17 +261,18 @@ export function FormModal({ visible, onClose, title, children, footer }: {
   children: ReactNode;
   footer?: ReactNode;
 }) {
+  const { colors } = useThemeMode();
   return (
     <Modal visible={visible} transparent animationType="slide" onRequestClose={onClose}>
-      <View className="flex-1 bg-black/50 justify-end">
-        <View className="bg-bg rounded-t-2xl max-h-[90%]">
+      <View className="flex-1 justify-end" style={{ backgroundColor: 'rgba(0, 0, 0, 0.5)' }}>
+        <View className="rounded-t-2xl max-h-[90%]" style={{ backgroundColor: colors.bg }}>
           <View className="flex-row items-center justify-between px-4 pt-4 pb-2">
-            <Text className="text-base font-semibold text-ink">{title}</Text>
+            <Text className="text-base font-semibold" style={{ color: colors.text }}>{title}</Text>
             <TouchableOpacity onPress={onClose} hitSlop={8}>
-              <Text className="text-sm text-muted">Close</Text>
+              <Text className="text-sm" style={{ color: colors.muted }}>Close</Text>
             </TouchableOpacity>
           </View>
-          <Divider />
+          <View className="h-px" style={{ backgroundColor: colors.divider }} />
           <ScrollView contentContainerClassName="p-4 pb-8" keyboardShouldPersistTaps="handled">
             {children}
           </ScrollView>
@@ -241,8 +290,8 @@ export function EmptyState({ icon, title, subtitle }: { icon?: keyof typeof Mate
   return (
     <View className="items-center py-10 px-6">
       {icon ? <MaterialIcons name={icon} size={40} color={colors.muted} /> : null}
-      <Text className="text-sm font-medium text-ink mt-3 text-center">{title}</Text>
-      {subtitle ? <Text className="text-xs text-muted mt-1 text-center leading-5">{subtitle}</Text> : null}
+      <Text className="text-sm font-medium mt-3 text-center" style={{ color: colors.text }}>{title}</Text>
+      {subtitle ? <Text className="text-xs mt-1 text-center leading-5" style={{ color: colors.muted }}>{subtitle}</Text> : null}
     </View>
   );
 }

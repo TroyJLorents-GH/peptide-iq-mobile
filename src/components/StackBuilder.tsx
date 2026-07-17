@@ -106,7 +106,7 @@ export default function StackBuilder({ visible, onClose, onSave }: StackBuilderP
       <Text className="font-mono text-[10px] uppercase tracking-widest mb-1" style={{ color: VIOLET }}>
         {'// Build your own blend'}
       </Text>
-      <Text className="text-xs text-muted mb-3">
+      <Text className="text-xs mb-3" style={{ color: colors.muted }}>
         Private to you — won't appear in the main library or for other users.
       </Text>
 
@@ -123,7 +123,7 @@ export default function StackBuilder({ visible, onClose, onSave }: StackBuilderP
         <Input value={name} onChangeText={setName} placeholder="e.g., My KLOW 50mg Vial" />
       </Field>
 
-      <Text className="font-mono text-[10px] uppercase tracking-widest text-muted mb-2">
+      <Text className="font-mono text-[10px] uppercase tracking-widest mb-2" style={{ color: colors.muted }}>
         Components ({components.length} of {rows.length} valid)
       </Text>
 
@@ -171,15 +171,15 @@ export default function StackBuilder({ visible, onClose, onSave }: StackBuilderP
         onPress={() => setRows(prev => [...prev, newRow()])}
       >
         <MaterialIcons name="add" size={18} color={colors.primary} />
-        <Text className="text-sm text-primary font-medium">Add another peptide</Text>
+        <Text className="text-sm font-medium" style={{ color: colors.primary }}>Add another peptide</Text>
       </TouchableOpacity>
 
       <Divider className="my-3" />
 
-      <Text className="font-mono text-[10px] uppercase tracking-widest text-muted mb-2">Preview</Text>
+      <Text className="font-mono text-[10px] uppercase tracking-widest mb-2" style={{ color: colors.muted }}>Preview</Text>
 
       {components.length === 0 ? (
-        <Text className="text-[13px] text-muted italic mb-3">
+        <Text className="text-[13px] italic mb-3" style={{ color: colors.muted }}>
           Add at least 2 components with mg amounts to see the preview.
         </Text>
       ) : (
@@ -197,10 +197,10 @@ export default function StackBuilder({ visible, onClose, onSave }: StackBuilderP
                 className="flex-row justify-between py-1.5 border-b"
                 style={{ borderColor: 'rgba(168, 85, 247, 0.2)' }}
               >
-                <Text className="text-[13px] font-medium text-ink">{c.label}</Text>
+                <Text className="text-[13px] font-medium" style={{ color: colors.text }}>{c.label}</Text>
                 <Text className="font-mono text-xs font-semibold" style={{ color: VIOLET }}>
                   {c.mgPerVial} mg{' '}
-                  <Text className="text-[10px] text-muted font-normal">
+                  <Text className="text-[10px] font-normal" style={{ color: colors.muted }}>
                     ({totalMg > 0 ? ((c.mgPerVial / totalMg) * 100).toFixed(1) : '0.0'}%)
                   </Text>
                 </Text>
@@ -215,7 +215,7 @@ export default function StackBuilder({ visible, onClose, onSave }: StackBuilderP
             <PreviewStat label="Steady" value={`${aggregatePK.steadyStateDays}d`} />
           </View>
 
-          <Text className="text-[10px] text-muted mt-2">
+          <Text className="text-[10px] mt-2" style={{ color: colors.muted }}>
             Computed from each component's library data, weighted by your mg input.
           </Text>
         </View>
@@ -239,10 +239,11 @@ export default function StackBuilder({ visible, onClose, onSave }: StackBuilderP
 }
 
 function PreviewStat({ label, value }: { label: string; value: string }) {
+  const { colors } = useThemeMode();
   return (
-    <View className="flex-1 items-center rounded-md border border-outline bg-bg px-1 py-2">
-      <Text className="font-mono text-[9px] uppercase tracking-widest text-muted mb-0.5">{label}</Text>
-      <Text className="font-mono text-base font-semibold text-ink">{value}</Text>
+    <View className="flex-1 items-center rounded-md border px-1 py-2" style={{ borderColor: colors.outline, backgroundColor: colors.bg }}>
+      <Text className="font-mono text-[9px] uppercase tracking-widest mb-0.5" style={{ color: colors.muted }}>{label}</Text>
+      <Text className="font-mono text-base font-semibold" style={{ color: colors.text }}>{value}</Text>
     </View>
   );
 }

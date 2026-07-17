@@ -1,6 +1,7 @@
 import '../global.css';
 
 import { useEffect } from 'react';
+import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { DarkTheme, DefaultTheme, Stack, ThemeProvider } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { StatusBar } from 'expo-status-bar';
@@ -22,7 +23,7 @@ function RootNavigator() {
 
   if (loading) {
     return (
-      <View className="flex-1 items-center justify-center bg-bg">
+      <View className="flex-1 items-center justify-center" style={{ backgroundColor: colors.bg }}>
         <ActivityIndicator size="large" color={colors.primary} />
       </View>
     );
@@ -51,6 +52,8 @@ function RootNavigator() {
             headerTintColor: colors.text,
             headerTitleStyle: { fontWeight: '600' },
             contentStyle: { backgroundColor: colors.bg },
+            // Show only the chevron on back — avoids the ugly "(tabs)" label.
+            headerBackButtonDisplayMode: 'minimal',
           }}
         >
           <Stack.Protected guard={!!session}>
@@ -72,10 +75,12 @@ function RootNavigator() {
 
 export default function RootLayout() {
   return (
-    <ThemeModeProvider>
-      <AuthProvider>
-        <RootNavigator />
-      </AuthProvider>
-    </ThemeModeProvider>
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <ThemeModeProvider>
+        <AuthProvider>
+          <RootNavigator />
+        </AuthProvider>
+      </ThemeModeProvider>
+    </GestureHandlerRootView>
   );
 }
