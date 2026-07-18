@@ -5,6 +5,7 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { Pressable, Text, View } from '../../tw';
 import GradientView from '../../components/Gradient';
 import { AnimatedCount, Rise } from '../../components/Anim';
+import TodaySection from '../../components/wellness/TodaySection';
 import { Banner, Button, Card, Chip, Field, Input, Screen } from '../../components/ui';
 import LineChart, { type ChartSeries } from '../../components/LineChart';
 import DailyRangeChart, { type RangeDay } from '../../components/DailyRangeChart';
@@ -236,6 +237,11 @@ export default function DashboardScreen() {
                 accent="amber"
               />
             </View>
+          </Rise>
+
+          {/* Daily wellness */}
+          <Rise delay={90}>
+            <TodaySection />
           </Rise>
 
           {/* Current levels */}
