@@ -135,6 +135,26 @@ export default function ProgressScreen() {
     return chartLogs.map(l => ({ x: new Date(l.recorded_at).getTime(), y: l.weight_lbs }));
   }, [logs, trendRange]);
 
+  // Dashed continuation of the recent trend (MeAgain-style), clamped at the
+  // goal weight so the projection never overshoots it.
+  const trendSeriesPoints = useMemo(() => {
+    if (chartPoints.length === 0) return chartPoints;
+    const DAY = 24 * 60 * 60 * 1000;
+    const last = chartPoints[chartPoints.length - 1];
+    const first = chartPoints[0];
+    const slope = chartPoints.length > 1 && last.x > first.x ? (last.y - first.y) / (last.x - first.x) : 0;
+    let projMs = Math.max((last.x - first.x) * 0.3, 14 * DAY);
+    let endY = last.y + slope * projMs;
+    if (goalWeight !== null && slope !== 0) {
+      const movingToward = (goalWeight - last.y) * slope > 0;
+      if (movingToward) {
+        const msToGoal = (goalWeight - last.y) / slope;
+        if (msToGoal < projMs) { projMs = msToGoal; endY = goalWeight; }
+      }
+    }
+    return [...chartPoints, { x: last.x + projMs, y: endY }];
+  }, [chartPoints, goalWeight]);
+
   const resetAddForm = () => {
     setEditId(null);
     setAddWeight('');
@@ -255,8 +275,11 @@ export default function ProgressScreen() {
         <SectionLabel>Weight Trend</SectionLabel>
         {chartPoints.length > 0 ? (
           <LineChart
-            series={[{ color: colors.primaryLight, points: chartPoints }]}
+            series={[{ color: colors.primaryLight, points: trendSeriesPoints }]}
             height={240}
+            markerX={chartPoints[chartPoints.length - 1].x}
+            yDomain="auto"
+            pointDots
             xFormatter={x => new Date(x).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
             yFormatter={y => y.toFixed(0)}
             xTickCount={3}

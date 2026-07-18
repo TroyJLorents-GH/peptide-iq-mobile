@@ -25,6 +25,11 @@ interface LineChartProps {
   endDot?: boolean;
   /** Monotone-cubic curve smoothing (no overshoot on dose spikes). Default on. */
   smooth?: boolean;
+  /** 'zero' anchors the y-axis at 0 (PK charts). 'auto' zooms to the data
+   *  range with padding (weight trends — a 20 lb change fills the chart). */
+  yDomain?: 'zero' | 'auto';
+  /** Small dot on every actual data point (sparse data like weigh-ins). */
+  pointDots?: boolean;
 }
 
 let chartInstance = 0;
@@ -44,6 +49,8 @@ export default function LineChart({
   fillArea = true,
   endDot = true,
   smooth = true,
+  yDomain = 'zero',
+  pointDots = false,
 }: LineChartProps) {
   const [width, setWidth] = useState(0);
   const [uid] = useState(() => `lc${chartInstance++}`);
@@ -56,14 +63,24 @@ export default function LineChart({
   const allPoints = series.flatMap(s => s.points);
   let xMin = Math.min(...allPoints.map(p => p.x));
   let xMax = Math.max(...allPoints.map(p => p.x));
-  const yMin = 0;
-  let yMax = Math.max(...allPoints.map(p => p.y), 0.001);
   if (!Number.isFinite(xMin) || xMin === xMax) { xMin = 0; xMax = 1; }
-  yMax *= 1.08; // headroom
+
+  let yMin: number;
+  let yMax: number;
+  if (yDomain === 'auto') {
+    const dataMin = Math.min(...allPoints.map(p => p.y));
+    const dataMax = Math.max(...allPoints.map(p => p.y), dataMin + 0.001);
+    const span = Math.max(dataMax - dataMin, Math.abs(dataMax) * 0.02, 0.001);
+    yMin = Math.max(0, dataMin - span * 0.18);
+    yMax = dataMax + span * 0.18;
+  } else {
+    yMin = 0;
+    yMax = Math.max(...allPoints.map(p => p.y), 0.001) * 1.08; // headroom
+  }
 
   const sx = (x: number) => pad.left + ((x - xMin) / (xMax - xMin)) * innerW;
   const sy = (y: number) => pad.top + innerH - ((y - yMin) / (yMax - yMin)) * innerH;
-  const baselineY = sy(0);
+  const baselineY = sy(yMin);
 
   // Monotone-cubic (Fritsch–Carlson) smoothing: curves flow like Apple
   // Fitness charts but never overshoot — dose spikes keep their true peak.
@@ -217,6 +234,20 @@ export default function LineChart({
                     opacity={0.7}
                   />
                 ) : null}
+                {/* dot on every actual data point (sparse series) */}
+                {pointDots
+                  ? solid.map((p, pi) => (
+                      <Circle
+                        key={`pd${pi}`}
+                        cx={sx(p.x)}
+                        cy={sy(p.y)}
+                        r={3}
+                        fill={s.color}
+                        stroke={colors.surface}
+                        strokeWidth={1.5}
+                      />
+                    ))
+                  : null}
                 {/* current-value dot at the last actual point */}
                 {endDot && solid.length > 0 ? (
                   <Circle
