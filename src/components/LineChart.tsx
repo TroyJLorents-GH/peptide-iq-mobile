@@ -23,6 +23,8 @@ interface LineChartProps {
   fillArea?: boolean;
   /** Dot on the last actual (non-projected) point. Default on. */
   endDot?: boolean;
+  /** Monotone-cubic curve smoothing (no overshoot on dose spikes). Default on. */
+  smooth?: boolean;
 }
 
 let chartInstance = 0;
@@ -41,6 +43,7 @@ export default function LineChart({
   yTickCount = 4,
   fillArea = true,
   endDot = true,
+  smooth = true,
 }: LineChartProps) {
   const [width, setWidth] = useState(0);
   const [uid] = useState(() => `lc${chartInstance++}`);
@@ -62,8 +65,41 @@ export default function LineChart({
   const sy = (y: number) => pad.top + innerH - ((y - yMin) / (yMax - yMin)) * innerH;
   const baselineY = sy(0);
 
+  // Monotone-cubic (Fritsch–Carlson) smoothing: curves flow like Apple
+  // Fitness charts but never overshoot — dose spikes keep their true peak.
+  const smoothPath = (pts: { x: number; y: number }[]) => {
+    const P = pts.map(p => ({ x: sx(p.x), y: sy(p.y) }));
+    const n = P.length;
+    if (n < 3) return P.map((p, i) => `${i === 0 ? 'M' : 'L'}${p.x.toFixed(1)},${p.y.toFixed(1)}`).join(' ');
+
+    const dx: number[] = [], slope: number[] = [];
+    for (let i = 0; i < n - 1; i++) {
+      dx.push(P[i + 1].x - P[i].x || 1e-6);
+      slope.push((P[i + 1].y - P[i].y) / (dx[i] || 1e-6));
+    }
+    const m: number[] = [slope[0]];
+    for (let i = 1; i < n - 1; i++) {
+      if (slope[i - 1] * slope[i] <= 0) m.push(0);
+      else {
+        const w1 = 2 * dx[i] + dx[i - 1];
+        const w2 = dx[i] + 2 * dx[i - 1];
+        m.push((w1 + w2) / (w1 / slope[i - 1] + w2 / slope[i]));
+      }
+    }
+    m.push(slope[n - 2]);
+
+    let d = `M${P[0].x.toFixed(1)},${P[0].y.toFixed(1)}`;
+    for (let i = 0; i < n - 1; i++) {
+      const h = dx[i] / 3;
+      d += ` C${(P[i].x + h).toFixed(1)},${(P[i].y + m[i] * h).toFixed(1)} ${(P[i + 1].x - h).toFixed(1)},${(P[i + 1].y - m[i + 1] * h).toFixed(1)} ${P[i + 1].x.toFixed(1)},${P[i + 1].y.toFixed(1)}`;
+    }
+    return d;
+  };
+
   const linePath = (pts: { x: number; y: number }[]) =>
-    pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${sx(p.x).toFixed(1)},${sy(p.y).toFixed(1)}`).join(' ');
+    smooth
+      ? smoothPath(pts)
+      : pts.map((p, i) => `${i === 0 ? 'M' : 'L'}${sx(p.x).toFixed(1)},${sy(p.y).toFixed(1)}`).join(' ');
 
   const areaPath = (pts: { x: number; y: number }[]) => {
     if (pts.length < 2) return '';

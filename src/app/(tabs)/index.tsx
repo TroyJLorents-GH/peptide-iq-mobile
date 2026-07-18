@@ -226,13 +226,14 @@ export default function DashboardScreen() {
           {/* Stat cards */}
           <Rise delay={60}>
             <View className="flex-row flex-wrap gap-2 mb-3">
-              <StatCard icon="science" label="Active Compounds" value={String(activeCompounds.length)} />
-              <StatCard icon="trending-up" label="Doses Logged" value={String(totalDoses)} />
+              <StatCard icon="science" label="Active Compounds" value={String(activeCompounds.length)} detail="in your stack" accent="teal" />
+              <StatCard icon="trending-up" label="Doses Logged" value={String(totalDoses)} detail="all time" accent="violet" />
               <StatCard
                 icon="event"
                 label="Last Dose"
                 value={lastDose ? resolveCompound(lastDose.compoundId)?.genericName ?? '?' : 'None'}
                 detail={lastDose ? new Date(lastDose.timestamp).toLocaleDateString() : undefined}
+                accent="amber"
               />
             </View>
           </Rise>
@@ -460,34 +461,39 @@ function NewUserCard() {
   );
 }
 
-function StatCard({ icon, label, value, detail }: {
+// Tinted analytics tile: big number, bold label, muted sublabel, ghosted icon.
+function StatCard({ icon, label, value, detail, accent = 'teal' }: {
   icon: keyof typeof MaterialIcons.glyphMap;
   label: string;
   value: string;
   detail?: string;
+  accent?: 'teal' | 'violet' | 'amber' | 'neutral';
 }) {
   const { colors, resolvedMode } = useThemeMode();
-  const shadow =
-    resolvedMode === 'light'
-      ? { shadowColor: '#0F172A', shadowOpacity: 0.06, shadowRadius: 10, shadowOffset: { width: 0, height: 3 }, elevation: 2 }
-      : {};
+  const light = resolvedMode === 'light';
+  const accents = {
+    teal: { bg: light ? 'rgba(14,165,183,0.10)' : 'rgba(34,211,238,0.13)', fg: colors.tealText },
+    violet: { bg: light ? 'rgba(124,58,237,0.09)' : 'rgba(167,139,250,0.14)', fg: colors.violetText },
+    amber: { bg: light ? 'rgba(217,119,6,0.10)' : 'rgba(251,191,36,0.13)', fg: colors.warning },
+    neutral: { bg: colors.surface, fg: colors.text },
+  } as const;
+  const a = accents[accent];
   return (
     <View
-      className="basis-[47%] grow rounded-2xl px-3.5 py-3 flex-row items-center justify-between gap-2"
-      style={{ backgroundColor: colors.surface, borderWidth: 1, borderColor: colors.cardBorder, ...shadow }}
+      className="basis-[47%] grow rounded-2xl px-3.5 py-3.5 overflow-hidden"
+      style={{ backgroundColor: a.bg, borderWidth: 1, borderColor: accent === 'neutral' ? colors.cardBorder : 'transparent' }}
     >
-      <View className="flex-1">
-        <Text className="font-mono text-[10px] uppercase tracking-wider font-bold" style={{ color: colors.muted }}>{label}</Text>
-        <Text className="font-mono font-bold text-base mt-1" style={{ color: colors.text }} numberOfLines={1}>{value}</Text>
-        {detail ? <Text className="text-xs font-bold mt-0.5" style={{ color: colors.muted }}>{detail}</Text> : null}
-      </View>
-      <GradientView
-        colors={[colors.primary, colors.secondary]}
-        borderRadius={12}
-        className="w-10 h-10 rounded-xl items-center justify-center"
-      >
-        <MaterialIcons name={icon} size={18} color="#FFFFFF" />
-      </GradientView>
+      <MaterialIcons
+        name={icon}
+        size={34}
+        color={a.fg}
+        style={{ position: 'absolute', top: 10, right: 10, opacity: 0.28 }}
+      />
+      <Text className="font-mono font-extrabold text-[26px] leading-8" style={{ color: a.fg }} numberOfLines={1}>
+        {value}
+      </Text>
+      <Text className="text-[13px] font-bold mt-0.5" style={{ color: colors.text }} numberOfLines={1}>{label}</Text>
+      {detail ? <Text className="text-[11px] mt-0.5" style={{ color: colors.muted }} numberOfLines={1}>{detail}</Text> : null}
     </View>
   );
 }
