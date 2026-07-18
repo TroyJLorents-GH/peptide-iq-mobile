@@ -25,6 +25,19 @@ interface WeightLog {
   recorded_at: string;
 }
 
+interface SideEffectLog {
+  id: string;
+  effect: string;
+  severity: number; // 1-10
+  notes: string;
+  recorded_at: string;
+}
+
+const EFFECT_OPTIONS = [
+  'Nausea', 'Heartburn', 'Constipation', 'Diarrhea', 'Fatigue',
+  'Headache', 'Food Noise', 'Appetite Loss', 'Injection Site', 'Dizziness',
+];
+
 interface ActivityEvent {
   id: string;
   type: EventType;
@@ -79,6 +92,15 @@ export default function LogbookScreen() {
   const [doseNotes, setDoseNotes] = useState('');
   const [doseError, setDoseError] = useState('');
 
+  // Side effect log state
+  const [sideEffects, setSideEffects] = useState<SideEffectLog[]>([]);
+  const [effectModalOpen, setEffectModalOpen] = useState(false);
+  const [effectName, setEffectName] = useState<string>(EFFECT_OPTIONS[0]);
+  const [effectSeverity, setEffectSeverity] = useState(5);
+  const [effectNotes, setEffectNotes] = useState('');
+  const [effectDate, setEffectDate] = useState(new Date());
+  const [effectSaving, setEffectSaving] = useState(false);
+
   // Edit weight modal state
   const [weightModalOpen, setWeightModalOpen] = useState(false);
   const [editingWeightId, setEditingWeightId] = useState<string | null>(null);
@@ -97,7 +119,60 @@ export default function LogbookScreen() {
       .then(({ data }) => {
         if (data) setWeightLogs(data);
       });
+    supabase
+      .from('side_effect_logs')
+      .select('*')
+      .eq('user_id', user.id)
+      .order('recorded_at', { ascending: false })
+      .limit(200)
+      .then(({ data }) => {
+        if (data) setSideEffects(data);
+      });
   }, [user]);
+
+  const saveSideEffect = async () => {
+    if (!user || effectSaving) return;
+    setEffectSaving(true);
+    const payload = {
+      user_id: user.id,
+      effect: effectName,
+      severity: effectSeverity,
+      notes: effectNotes,
+      recorded_at: effectDate.toISOString(),
+    };
+    const { data, error } = await supabase.from('side_effect_logs').insert(payload).select().single();
+    if (!error && data) setSideEffects(prev => [data, ...prev]);
+    setEffectSaving(false);
+    setEffectModalOpen(false);
+    setEffectNotes('');
+    setEffectSeverity(5);
+  };
+
+  const deleteSideEffect = (id: string) => {
+    if (!user) return;
+    Alert.alert('Delete this side-effect entry?', undefined, [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          setSideEffects(prev => prev.filter(s => s.id !== id));
+          await supabase.from('side_effect_logs').delete().eq('id', id).eq('user_id', user.id);
+        },
+      },
+    ]);
+  };
+
+  // Peak severity per effect over the last 7 days (MeAgain-style bars).
+  const effectSummary = useMemo(() => {
+    const cutoff = Date.now() - 7 * DAY_MS;
+    const m = new Map<string, number>();
+    for (const s of sideEffects) {
+      if (new Date(s.recorded_at).getTime() < cutoff) continue;
+      m.set(s.effect, Math.max(m.get(s.effect) ?? 0, s.severity));
+    }
+    return [...m.entries()].sort((a, b) => b[1] - a[1]);
+  }, [sideEffects]);
 
   const activeCompounds = useMemo(() => userCompounds.filter(uc => uc.active), [userCompounds]);
   const plannedDoses = useMemo(() => generateAllPlannedDoses(activeCompounds, doseLogs), [activeCompounds, doseLogs]);
@@ -446,6 +521,54 @@ export default function LogbookScreen() {
         ) : null}
       </Card>
 
+      {/* Side effects */}
+      <View className="flex-row items-center justify-between mb-1.5">
+        <SectionLabel>Side Effects — last 7 days</SectionLabel>
+        <Button
+          title="Log Effect"
+          variant="outlined"
+          onPress={() => { setEffectDate(new Date()); setEffectModalOpen(true); }}
+          className="py-1.5 px-3"
+        />
+      </View>
+      <Card className="p-4 mb-4">
+        {effectSummary.length === 0 ? (
+          <Text className="text-[13px]" style={{ color: colors.muted }}>
+            No side effects logged this week. Tap "Log Effect" after a dose to track how you feel.
+          </Text>
+        ) : (
+          <View className="gap-2.5">
+            {effectSummary.map(([name, sev]) => {
+              const barColor = sev >= 7 ? colors.error : sev >= 4 ? colors.warning : colors.success;
+              return (
+                <View key={name}>
+                  <View className="flex-row items-center justify-between mb-1">
+                    <Text className="text-[13px] font-medium" style={{ color: colors.text }}>{name}</Text>
+                    <Text className="font-mono text-[11px]" style={{ color: colors.muted }}>{sev}/10</Text>
+                  </View>
+                  <View className="h-1.5 rounded-full overflow-hidden" style={{ backgroundColor: colors.divider }}>
+                    <View className="h-full rounded-full" style={{ width: `${sev * 10}%`, backgroundColor: barColor }} />
+                  </View>
+                </View>
+              );
+            })}
+          </View>
+        )}
+        {sideEffects.length > 0 ? (
+          <View className="mt-3 pt-2" style={{ borderTopWidth: 1, borderTopColor: colors.divider }}>
+            {sideEffects.slice(0, 4).map(s => (
+              <Pressable key={s.id} className="flex-row items-center py-1" onLongPress={() => deleteSideEffect(s.id)}>
+                <Text className="flex-1 text-[11px]" style={{ color: colors.muted }} numberOfLines={1}>
+                  {new Date(s.recorded_at).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric' })}
+                  {' — '}{s.effect} {s.severity}/10{s.notes ? ` — ${s.notes}` : ''}
+                </Text>
+              </Pressable>
+            ))}
+            <Text className="text-[10px] mt-1" style={{ color: colors.muted }}>Long-press an entry to delete</Text>
+          </View>
+        ) : null}
+      </Card>
+
       {/* History */}
       <View className="flex-row items-center justify-between mb-1.5">
         <SectionLabel>Dose & Measurement History</SectionLabel>
@@ -584,6 +707,64 @@ export default function LogbookScreen() {
         </Field>
         <Field label="Notes (optional)">
           <Input value={doseNotes} onChangeText={setDoseNotes} placeholder="Notes" multiline numberOfLines={3} />
+        </Field>
+      </FormModal>
+
+      {/* Log side effect modal */}
+      <FormModal
+        visible={effectModalOpen}
+        onClose={() => setEffectModalOpen(false)}
+        title="Log Side Effect"
+        footer={<Button title={effectSaving ? 'Saving…' : 'Save'} onPress={saveSideEffect} disabled={effectSaving} />}
+      >
+        <Field label="Effect">
+          <View className="flex-row flex-wrap gap-1.5">
+            {EFFECT_OPTIONS.map(name => {
+              const active = effectName === name;
+              return (
+                <Pressable
+                  key={name}
+                  className="rounded-full border px-3 py-1.5"
+                  style={{
+                    backgroundColor: active ? colors.primaryTint : 'transparent',
+                    borderColor: active ? colors.primary : colors.outline,
+                  }}
+                  onPress={() => setEffectName(name)}
+                >
+                  <Text
+                    className={`text-[12px] ${active ? 'font-semibold' : ''}`}
+                    style={{ color: active ? colors.tealText : colors.muted }}
+                  >
+                    {name}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </Field>
+        <Field label={`Severity — ${effectSeverity}/10`}>
+          <View className="flex-row gap-1">
+            {Array.from({ length: 10 }, (_, i) => i + 1).map(n => {
+              const active = n <= effectSeverity;
+              const color = effectSeverity >= 7 ? colors.error : effectSeverity >= 4 ? colors.warning : colors.success;
+              return (
+                <Pressable
+                  key={n}
+                  className="flex-1 h-8 rounded-md items-center justify-center"
+                  style={{ backgroundColor: active ? color : colors.divider }}
+                  onPress={() => setEffectSeverity(n)}
+                >
+                  <Text className="font-mono text-[10px] font-bold" style={{ color: active ? '#fff' : colors.muted }}>
+                    {n}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </Field>
+        <DateTimeField label="When" value={effectDate} onChange={setEffectDate} />
+        <Field label="Notes (optional)">
+          <Input value={effectNotes} onChangeText={setEffectNotes} placeholder="e.g. started ~2h after dose" multiline numberOfLines={2} />
         </Field>
       </FormModal>
 

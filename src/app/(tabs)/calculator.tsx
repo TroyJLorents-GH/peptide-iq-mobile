@@ -4,15 +4,21 @@ import { Banner, Button, Card, Field, Input, Screen, Select, SectionLabel } from
 import SyringeVisual from '../../components/SyringeVisual';
 import SplitDoseCalculator from '../../components/calculator/SplitDoseCalculator';
 import TitrationPlanner from '../../components/calculator/TitrationPlanner';
+import ProteinCalculator from '../../components/calculator/ProteinCalculator';
+import WaterCalculator from '../../components/calculator/WaterCalculator';
+import FiberCalculator from '../../components/calculator/FiberCalculator';
 import { useThemeMode } from '../../context/ThemeModeContext';
 import { calculateDose } from '../../utils/calculator';
 import type { CalculatorResult } from '../../types';
 
-type CalcTool = 'recon' | 'split' | 'titration';
+type CalcTool = 'recon' | 'split' | 'titration' | 'protein' | 'water' | 'fiber';
 const TOOLS: { key: CalcTool; label: string }[] = [
   { key: 'recon', label: 'Reconstitution' },
   { key: 'split', label: 'Split Dose' },
   { key: 'titration', label: 'Titration' },
+  { key: 'protein', label: 'Protein' },
+  { key: 'water', label: 'Water' },
+  { key: 'fiber', label: 'Fiber' },
 ];
 
 // Preset dose options (in mcg)
@@ -122,13 +128,13 @@ export default function CalculatorScreen() {
   return (
     <Screen>
       {/* Tool switcher */}
-      <View className="flex-row gap-1.5 mb-3">
+      <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mb-3" contentContainerClassName="gap-1.5">
         {TOOLS.map(t => {
           const active = tool === t.key;
           return (
             <Pressable
               key={t.key}
-              className="flex-1 items-center rounded-full border px-2 py-2"
+              className="items-center rounded-full border px-3 py-2"
               style={{
                 backgroundColor: active ? colors.primaryTint : 'transparent',
                 borderColor: active ? colors.primary : colors.outline,
@@ -144,10 +150,13 @@ export default function CalculatorScreen() {
             </Pressable>
           );
         })}
-      </View>
+      </ScrollView>
 
       {tool === 'split' ? <SplitDoseCalculator /> : null}
       {tool === 'titration' ? <TitrationPlanner /> : null}
+      {tool === 'protein' ? <ProteinCalculator /> : null}
+      {tool === 'water' ? <WaterCalculator /> : null}
+      {tool === 'fiber' ? <FiberCalculator /> : null}
 
       {tool === 'recon' ? (
       <>
